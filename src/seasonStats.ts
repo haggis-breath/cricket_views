@@ -2,6 +2,7 @@ import { parseCsvRows } from './matchResults'
 
 export interface ManualTalliesConfig {
   droppedCatches?: Record<string, number>
+  [categoryKey: string]: Record<string, number> | undefined
 }
 
 export interface OptionalRateMetric {
@@ -96,6 +97,22 @@ export interface StatsDisciplineConfig {
     sortHeader?: string,
     sortDirection?: SortDirection,
   ) => PlayerSeasonStats[]
+}
+
+export interface LeaderboardEntry {
+  rank: number
+  playerKey: string
+  playerName: string
+  primaryValue: number
+  supportingContext?: string
+}
+
+export interface LeaderboardCardData {
+  id: string
+  title: string
+  unitLabel: string
+  leaders: LeaderboardEntry[]
+  runnersUp: LeaderboardEntry[]
 }
 
 const PLAYHQ_COL = {
@@ -290,6 +307,21 @@ export const BATTING_COLUMNS: StatColumn[] = [
   },
 ]
 
+function compareWicketsWithBowlingAverageTieBreak(
+  a: PlayerSeasonStats,
+  b: PlayerSeasonStats,
+  direction: SortDirection,
+): number {
+  if (a.wickets !== b.wickets) {
+    return compareNumbers(a.wickets, b.wickets, direction)
+  }
+  return compareOptionalRate(
+    a.bowlingAverageValue,
+    b.bowlingAverageValue,
+    'asc',
+  )
+}
+
 export const BOWLING_COLUMNS: StatColumn[] = [
   {
     header: 'M',
@@ -315,16 +347,7 @@ export const BOWLING_COLUMNS: StatColumn[] = [
     header: 'Wkts',
     emphasize: true,
     renderValue: (p) => p.wickets,
-    compare: (a, b, dir) => {
-      if (a.wickets !== b.wickets) {
-        return compareNumbers(a.wickets, b.wickets, dir)
-      }
-      return compareOptionalRate(
-        a.bowlingAverageValue,
-        b.bowlingAverageValue,
-        'asc',
-      )
-    },
+    compare: compareWicketsWithBowlingAverageTieBreak,
   },
   {
     header: 'Avg',
@@ -587,16 +610,16 @@ export function formatBestBowling(rawBbi: string | undefined): string {
 
 interface ExtractedPlayerTally {
   displayName: string
-  droppedCatches: number
+  count: number
 }
 
-function extractDroppedCatchesMap(
-  manualTallies?: ManualTalliesConfig,
+function extractPlayerTallyMap(
+  rawRecord?: Record<string, number>,
 ): Map<string, ExtractedPlayerTally> {
   const map = new Map<string, ExtractedPlayerTally>()
-  if (!manualTallies?.droppedCatches) return map
+  if (!rawRecord) return map
 
-  for (const [rawName, count] of Object.entries(manualTallies.droppedCatches)) {
+  for (const [rawName, count] of Object.entries(rawRecord)) {
     if (typeof count !== 'number') continue
     const normalized = normalizePlayerName(rawName)
     if (!normalized) continue
@@ -604,7 +627,7 @@ function extractDroppedCatchesMap(
     const existing = map.get(key)
     map.set(key, {
       displayName: existing?.displayName ?? normalized,
-      droppedCatches: (existing?.droppedCatches ?? 0) + count,
+      count: (existing?.count ?? 0) + count,
     })
   }
 
@@ -678,7 +701,7 @@ export function parseSeasonStats(
   manualTallies?: ManualTalliesConfig,
 ): PlayerSeasonStats[] {
   const rows = parseCsvRows(csvText)
-  const manualMap = extractDroppedCatchesMap(manualTallies)
+  const manualMap = extractPlayerTallyMap(manualTallies?.droppedCatches)
   const seenKeys = new Set<string>()
 
   const dataRows = rows.length > 1 ? rows.slice(1) : []
@@ -726,7 +749,7 @@ export function parseSeasonStats(
       parseIntCell(cols[PLAYHQ_COL.RUN_OUTS_ASSISTED])
     const stumpings = parseIntCell(cols[PLAYHQ_COL.STUMPINGS])
     const totalDismissals = totalCatches + runOuts + stumpings
-    const droppedCatches = manualMap.get(playerKey)?.droppedCatches ?? 0
+    const droppedCatches = manualMap.get(playerKey)?.count ?? 0
 
     return {
       playerKey,
@@ -780,11 +803,195 @@ export function parseSeasonStats(
         createSynthesizedPlayer(
           playerKey,
           entry.displayName,
-          entry.droppedCatches,
+          entry.count,
         ),
       )
     }
   }
 
   return parsedPlayers
+}
+
+function buildRankedCardEntries<
+  T extends { playerKey: string; playerName: string },
+>(
+  items: T[],
+  comparePrimaryAndTieBreak: (a: T, b: T) => number,
+  getPrimaryValue: (item: T) => number,
+  getSupportingContext?: (item: T) => string | undefined,
+): { leaders: LeaderboardEntry[]; runnersUp: LeaderboardEntry[] } {
+  const sorted = [...items].sort((a, b) => {
+    const cmp = comparePrimaryAndTieBreak(a, b)
+    if (cmp !== 0) return cmp
+    return a.playerName.localeCompare(b.playerName)
+  })
+
+  const ranked: LeaderboardEntry[] = []
+  for (let i = 0; i < sorted.length; i++) {
+    const item = sorted[i]
+    let rank = i + 1
+    if (i > 0 && comparePrimaryAndTieBreak(sorted[i - 1], item) === 0) {
+      rank = ranked[i - 1].rank
+    }
+    ranked.push({
+      rank,
+      playerKey: item.playerKey,
+      playerName: item.playerName,
+      primaryValue: getPrimaryValue(item),
+      supportingContext: getSupportingContext?.(item),
+    })
+  }
+
+  const leaders = ranked.filter((r) => r.rank === 1)
+  const runnersUp = ranked.filter((r) => r.rank > 1).slice(0, 5)
+
+  return { leaders, runnersUp }
+}
+
+function formatSafeHandsContext(player: PlayerSeasonStats): string {
+  const parts: string[] = [`${player.totalCatches} Ct`]
+  if (player.runOuts > 0) parts.push(`${player.runOuts} RO`)
+  if (player.stumpings > 0) parts.push(`${player.stumpings} St`)
+  return parts.join(' • ')
+}
+
+function formatManualTallyTitle(rawKey: string): string {
+  const spaced = rawKey
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .trim()
+  if (!spaced) return rawKey
+  return spaced
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+function slugifyId(rawKey: string): string {
+  return (
+    rawKey
+      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'manual-tally'
+  )
+}
+
+export function buildLeaderboardCards(
+  players: PlayerSeasonStats[],
+  manualTallies?: ManualTalliesConfig,
+): LeaderboardCardData[] {
+  const playerNameByKey = new Map<string, string>()
+  for (const player of players) {
+    playerNameByKey.set(player.playerKey, player.playerName)
+  }
+
+  const runScorers = players.filter((p) => p.runs > 0)
+  const runScorerEntries = buildRankedCardEntries(
+    runScorers,
+    (a, b) => {
+      if (a.runs !== b.runs) return compareNumbers(a.runs, b.runs, 'desc')
+      return compareOptionalRate(
+        a.battingAverage.value,
+        b.battingAverage.value,
+        'desc',
+      )
+    },
+    (p) => p.runs,
+    (p) => `Avg: ${p.battingAverageDisplay} • HS: ${p.highScoreDisplay}`,
+  )
+
+  const wicketTakers = players.filter((p) => p.wickets > 0)
+  const wicketTakerEntries = buildRankedCardEntries(
+    wicketTakers,
+    (a, b) => compareWicketsWithBowlingAverageTieBreak(a, b, 'desc'),
+    (p) => p.wickets,
+    (p) => `Avg: ${p.bowlingAverageDisplay} • BBI: ${p.bestBowlingDisplay}`,
+  )
+
+  const safeHands = players.filter((p) => p.totalDismissals > 0)
+  const safeHandsEntries = buildRankedCardEntries(
+    safeHands,
+    (a, b) => compareNumbers(a.totalDismissals, b.totalDismissals, 'desc'),
+    (p) => p.totalDismissals,
+    formatSafeHandsContext,
+  )
+
+  const duckPondPlayers = players.filter((p) => p.ducks > 0)
+  const duckPondEntries = buildRankedCardEntries(
+    duckPondPlayers,
+    (a, b) => compareNumbers(a.ducks, b.ducks, 'desc'),
+    (p) => p.ducks,
+  )
+
+  const butterfingersPlayers = players.filter((p) => p.droppedCatches > 0)
+  const butterfingersEntries = buildRankedCardEntries(
+    butterfingersPlayers,
+    (a, b) => compareNumbers(a.droppedCatches, b.droppedCatches, 'desc'),
+    (p) => p.droppedCatches,
+  )
+
+  const manualTallyCards: LeaderboardCardData[] = []
+  if (manualTallies) {
+    for (const [categoryKey, rawRecord] of Object.entries(manualTallies)) {
+      if (categoryKey === 'droppedCatches') continue
+      if (!rawRecord || typeof rawRecord !== 'object') continue
+
+      const tallyMap = extractPlayerTallyMap(rawRecord)
+      const positiveEntries = Array.from(tallyMap.entries())
+        .filter(([, entry]) => entry.count > 0)
+        .map(([playerKey, entry]) => ({
+          playerKey,
+          playerName: playerNameByKey.get(playerKey) ?? entry.displayName,
+          count: entry.count,
+        }))
+
+      const rankedManual = buildRankedCardEntries(
+        positiveEntries,
+        (a, b) => compareNumbers(a.count, b.count, 'desc'),
+        (item) => item.count,
+      )
+
+      manualTallyCards.push({
+        id: `manual-tally-${slugifyId(categoryKey)}`,
+        title: formatManualTallyTitle(categoryKey),
+        unitLabel: 'Tally',
+        ...rankedManual,
+      })
+    }
+  }
+
+  return [
+    {
+      id: 'leading-run-scorer',
+      title: 'Leading Run Scorer',
+      unitLabel: 'Runs',
+      ...runScorerEntries,
+    },
+    {
+      id: 'leading-wicket-taker',
+      title: 'Leading Wicket Taker',
+      unitLabel: 'Wickets',
+      ...wicketTakerEntries,
+    },
+    {
+      id: 'safe-hands',
+      title: 'Safe Hands',
+      unitLabel: 'Dismissals',
+      ...safeHandsEntries,
+    },
+    {
+      id: 'duck-pond',
+      title: 'Duck Pond',
+      unitLabel: 'Ducks',
+      ...duckPondEntries,
+    },
+    {
+      id: 'butterfingers',
+      title: 'Butterfingers',
+      unitLabel: 'Drops',
+      ...butterfingersEntries,
+    },
+    ...manualTallyCards,
+  ]
 }

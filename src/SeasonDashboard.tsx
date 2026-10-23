@@ -18,6 +18,7 @@ import {
   STATS_DISCIPLINE_ORDER,
   type SortDirection,
   type StatsDiscipline,
+  buildLeaderboardCards,
   parseSeasonStats,
 } from './seasonStats'
 
@@ -105,6 +106,10 @@ export function SeasonDashboard({
   const lastMatch = selectLastMatch(matches, season.selectedLastMatchDate)
   const nextUpcomingMatch = selectNextUpcomingMatch(matches)
   const playerStats = parseSeasonStats(combinedStatsCsv, config.manualTallies)
+  const leaderboardCards = buildLeaderboardCards(
+    playerStats,
+    config.manualTallies,
+  )
   const activeDiscipline = STATS_DISCIPLINES[activeStatsTab]
   const activeStatsColumns = activeDiscipline.columns
   const activeSort = sortStateByTab[activeStatsTab]
@@ -447,6 +452,102 @@ export function SeasonDashboard({
           )}
         </section>
         </div>
+
+        <section
+          aria-labelledby="leaderboard-heading"
+          className="mt-8 rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-4">
+            <h2
+              id="leaderboard-heading"
+              className="text-lg font-bold tracking-tight text-white"
+            >
+              Leaderboard
+            </h2>
+          </div>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {leaderboardCards.map((card) => {
+              const headingId = `leaderboard-card-${card.id}`
+              return (
+                <article
+                  key={card.id}
+                  aria-labelledby={headingId}
+                  className="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-950/60 p-4"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <h3
+                        id={headingId}
+                        className="text-xs font-bold uppercase tracking-wider text-emerald-400"
+                      >
+                        {card.title}
+                      </h3>
+                      <span className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+                        {card.unitLabel}
+                      </span>
+                    </div>
+
+                    {card.leaders.length > 0 ? (
+                      <div className="mt-3 rounded-lg border border-emerald-900/40 bg-emerald-950/25 p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-300">
+                                #1
+                              </span>
+                              <span className="font-bold text-white">
+                                {card.leaders.map((l) => l.playerName).join(', ')}
+                              </span>
+                            </div>
+                            {card.leaders[0].supportingContext && (
+                              <div className="mt-1 text-xs text-slate-300">
+                                {card.leaders
+                                  .map((l) => l.supportingContext)
+                                  .filter(Boolean)
+                                  .join(' | ')}
+                              </div>
+                            )}
+                          </div>
+                          <span className="font-mono text-2xl font-extrabold text-emerald-400">
+                            {card.leaders[0].primaryValue}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-xs text-slate-400">
+                        No entries recorded yet.
+                      </p>
+                    )}
+
+                    {card.runnersUp.length > 0 && (
+                      <ol className="mt-3 divide-y divide-slate-800/60 text-xs">
+                        {card.runnersUp.map((entry) => (
+                          <li
+                            key={entry.playerKey}
+                            className="flex items-center justify-between gap-2 py-1.5"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-mono text-[11px] font-semibold text-slate-400">
+                                #{entry.rank}
+                              </span>
+                              <span className="truncate font-medium text-slate-200">
+                                {entry.playerName}
+                              </span>
+                            </div>
+                            <span className="font-mono font-bold text-slate-100">
+                              {entry.primaryValue}
+                            </span>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        </section>
 
         <section
           aria-labelledby="season-statistics-heading"

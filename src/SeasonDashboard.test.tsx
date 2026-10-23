@@ -1413,4 +1413,248 @@ describe('SeasonDashboard', () => {
       within(rows[rows.length - 1]).getAllByRole('cell')[0].textContent,
     ).toBe('Jordan Newcomer')
   })
+
+  test('renders Leaderboard headline cards (Leading Run Scorer, Leading Wicket Taker, Safe Hands) featuring the #1 leader, supporting context, and top runners-up', () => {
+    render(
+      <SeasonDashboard
+        seasonJson={seasonData}
+        matchResultsCsv={matchResultsCsv}
+        combinedStatsCsv={combinedStatsCsv}
+      />,
+    )
+
+    const leaderboardRegion = screen.getByRole('region', {
+      name: /Leaderboard/i,
+    })
+
+    // 1. Leading Run Scorer
+    const runScorerCard = within(leaderboardRegion).getByRole('article', {
+      name: /Leading Run Scorer/i,
+    })
+    expect(within(runScorerCard).getByText('Thomas Peeters')).toBeInTheDocument()
+    expect(within(runScorerCard).getByText('64')).toBeInTheDocument()
+    expect(within(runScorerCard).getByText(/Avg:\s*64/i)).toBeInTheDocument()
+    expect(within(runScorerCard).getByText(/HS:\s*64/i)).toBeInTheDocument()
+
+    const runScorerRunnersUp = within(runScorerCard).getAllByRole('listitem')
+    expect(runScorerRunnersUp.map((li) => li.textContent)).toEqual([
+      expect.stringMatching(/#2.*Alistair Osborne.*34/i),
+      expect.stringMatching(/#3.*Brock Estatheo.*27/i),
+      expect.stringMatching(/#4.*Cameron Haines.*24/i),
+      expect.stringMatching(/#5.*Tyran Cameron.*20/i),
+      expect.stringMatching(/#6.*Mitchell Owen.*20/i),
+    ])
+
+    // 2. Leading Wicket Taker
+    const wicketTakerCard = within(leaderboardRegion).getByRole('article', {
+      name: /Leading Wicket Taker/i,
+    })
+    expect(
+      within(wicketTakerCard).getByText('Alistair Osborne'),
+    ).toBeInTheDocument()
+    expect(within(wicketTakerCard).getByText('6')).toBeInTheDocument()
+    expect(
+      within(wicketTakerCard).getByText(/Avg:\s*4\.83/i),
+    ).toBeInTheDocument()
+    expect(within(wicketTakerCard).getByText(/BBI:\s*4\/18/i)).toBeInTheDocument()
+
+    const wicketTakerRunnersUp = within(wicketTakerCard).getAllByRole('listitem')
+    expect(wicketTakerRunnersUp.map((li) => li.textContent)).toEqual([
+      expect.stringMatching(/#2.*Mitchell Owen.*4/i),
+      expect.stringMatching(/#3.*Brock Estatheo.*2/i),
+      expect.stringMatching(/#4.*Martin Bigg.*1/i),
+      expect.stringMatching(/#5.*Ewan Bauer.*1/i),
+      expect.stringMatching(/#6.*Andrew Moffat.*1/i),
+    ])
+
+    // 3. Safe Hands
+    const safeHandsCard = within(leaderboardRegion).getByRole('article', {
+      name: /Safe Hands/i,
+    })
+    expect(within(safeHandsCard).getByText('Alistair Osborne')).toBeInTheDocument()
+    expect(within(safeHandsCard).getByText('3')).toBeInTheDocument()
+    expect(within(safeHandsCard).getByText(/3\s*Ct/i)).toBeInTheDocument()
+
+    const safeHandsRunnersUp = within(safeHandsCard).getAllByRole('listitem')
+    expect(safeHandsRunnersUp.map((li) => li.textContent)).toEqual([
+      expect.stringMatching(/#2.*Andrew Moffat.*2/i),
+      expect.stringMatching(/#2.*Ewan Bauer.*2/i),
+      expect.stringMatching(/#4.*Thomas Peeters.*1/i),
+    ])
+  })
+
+  test('renders Leaderboard banter/infamy cards (Duck Pond and Butterfingers), filtering out 0-tally players, handling ties, and matching Manual Tallies across "Last, First", "First Last", and CSV-absent players', () => {
+    const customSeasonJson = {
+      ...seasonData,
+      manualTallies: {
+        droppedCatches: {
+          'Moffat, Andrew': 3,
+          'Alistair Osborne': 2,
+          'Bauer, Ewan': 1,
+          'Newcomer, Jordan': 1,
+          'Peeters, Thomas': 0,
+        },
+      },
+    }
+
+    render(
+      <SeasonDashboard
+        seasonJson={customSeasonJson}
+        matchResultsCsv={matchResultsCsv}
+        combinedStatsCsv={combinedStatsCsv}
+      />,
+    )
+
+    const leaderboardRegion = screen.getByRole('region', {
+      name: /Leaderboard/i,
+    })
+
+    // 1. Duck Pond: Andrew Moffat, Nathan Standing, and Joseph Chenery tied at #1 with 1 duck; 0-duck players excluded
+    const duckPondCard = within(leaderboardRegion).getByRole('article', {
+      name: /Duck Pond/i,
+    })
+    expect(within(duckPondCard).getByText(/Andrew Moffat/i)).toBeInTheDocument()
+    expect(
+      within(duckPondCard).getByText(/Joseph Chenery/i),
+    ).toBeInTheDocument()
+    expect(
+      within(duckPondCard).getByText(/Nathan Standing/i),
+    ).toBeInTheDocument()
+    expect(within(duckPondCard).getByText('1')).toBeInTheDocument()
+    // 0-duck players must not appear on Duck Pond
+    expect(
+      within(duckPondCard).queryByText(/Thomas Peeters/i),
+    ).not.toBeInTheDocument()
+    expect(within(duckPondCard).queryAllByRole('listitem')).toHaveLength(0)
+
+    // 2. Butterfingers: Andrew Moffat #1 with 3 drops, Alistair Osborne #2 with 2, Ewan Bauer & Jordan Newcomer (not in CSV) tied #3 with 1, Thomas Peeters (0 drops) excluded
+    const butterfingersCard = within(leaderboardRegion).getByRole('article', {
+      name: /Butterfingers/i,
+    })
+    expect(
+      within(butterfingersCard).getByText('Andrew Moffat'),
+    ).toBeInTheDocument()
+    expect(within(butterfingersCard).getByText('3')).toBeInTheDocument()
+    expect(
+      within(butterfingersCard).queryByText(/Thomas Peeters/i),
+    ).not.toBeInTheDocument()
+
+    const butterfingersRunnersUp =
+      within(butterfingersCard).getAllByRole('listitem')
+    expect(butterfingersRunnersUp.map((li) => li.textContent)).toEqual([
+      expect.stringMatching(/#2.*Alistair Osborne.*2/i),
+      expect.stringMatching(/#3.*Ewan Bauer.*1/i),
+      expect.stringMatching(/#3.*Jordan Newcomer.*1/i),
+    ])
+  })
+
+  test('renders additional Manual Tally categories configured in season.json as Leaderboard cards, aggregating across "Last, First" and "First Last" formats and including CSV-absent players', () => {
+    const customSeasonJson = {
+      ...seasonData,
+      manualTallies: {
+        droppedCatches: {
+          'Moffat, Andrew': 2,
+          'Alistair Osborne': 1,
+        },
+        lateForWarmup: {
+          'Estatheo, Brock': 3,
+          'Brock Estatheo': 1,
+          'Owen, Mitchell': 2,
+          'Newcomer, Jordan': 1,
+          'Peeters, Thomas': 0,
+        },
+        'Clubhouse Shouts': {
+          'Osborne, Alistair': 5,
+          'Moffat, Andrew': 3,
+        },
+      },
+    }
+
+    render(
+      <SeasonDashboard
+        seasonJson={customSeasonJson}
+        matchResultsCsv={matchResultsCsv}
+        combinedStatsCsv={combinedStatsCsv}
+      />,
+    )
+
+    const leaderboardRegion = screen.getByRole('region', {
+      name: /Leaderboard/i,
+    })
+
+    // 1. camelCase key formatted to "Late For Warmup" with aggregated player tallies
+    const lateCard = within(leaderboardRegion).getByRole('article', {
+      name: /Late For Warmup/i,
+    })
+    expect(within(lateCard).getByText('Brock Estatheo')).toBeInTheDocument()
+    expect(within(lateCard).getByText('4')).toBeInTheDocument()
+    expect(
+      within(lateCard).queryByText(/Thomas Peeters/i),
+    ).not.toBeInTheDocument()
+
+    const lateRunnersUp = within(lateCard).getAllByRole('listitem')
+    expect(lateRunnersUp.map((li) => li.textContent)).toEqual([
+      expect.stringMatching(/#2.*Mitchell Owen.*2/i),
+      expect.stringMatching(/#3.*Jordan Newcomer.*1/i),
+    ])
+
+    // 2. Additional space-separated Manual Tally category
+    const shoutsCard = within(leaderboardRegion).getByRole('article', {
+      name: /Clubhouse Shouts/i,
+    })
+    expect(
+      within(shoutsCard).getByText('Alistair Osborne'),
+    ).toBeInTheDocument()
+    expect(within(shoutsCard).getByText('5')).toBeInTheDocument()
+
+    const shoutsRunnersUp = within(shoutsCard).getAllByRole('listitem')
+    expect(shoutsRunnersUp.map((li) => li.textContent)).toEqual([
+      expect.stringMatching(/#2.*Andrew Moffat.*3/i),
+    ])
+  })
+
+  test('breaks Leading Run Scorer ties by batting Average descending and Leading Wicket Taker ties by bowling Average ascending', () => {
+    const header = combinedStatsCsv.trim().split(/\r?\n/)[0]
+    const tieBreakCsv = [
+      header,
+      // Both batters have 50 runs; Alpha has avg 50 (1 out), Beta has avg 25 (2 outs) -> Alpha #1, Beta #2
+      // Both bowlers have 4 wickets; Gamma has bowling avg 10.0, Delta has bowling avg 18.5 -> Gamma #1, Delta #2
+      '"Alpha, Batter",Beresfield Memorial Cricket Club,2,2,50,50,40,1,1,0,0,30,true,125,5,1,0,0,0,0,0,--,,,,0,0,0,0,0,0,0,0,Division 7,Newcastle District Cricket Association Inc.',
+      '"Beta, Batter",Beresfield Memorial Cricket Club,2,2,25,50,50,0,0,0,0,35,false,100,4,0,0,0,0,0,0,--,,,,0,0,0,0,0,0,0,0,Division 7,Newcastle District Cricket Association Inc.',
+      '"Delta, Bowler",Beresfield Memorial Cricket Club,2,1,5,5,10,0,0,0,0,5,false,50,0,0,4,0,74,60,0,2--30,18.5,15,7.4,0,0,0,0,0,0,0,0,Division 7,Newcastle District Cricket Association Inc.',
+      '"Gamma, Bowler",Beresfield Memorial Cricket Club,2,1,5,5,10,0,0,0,0,5,false,50,0,0,4,1,40,60,0,3--15,10,15,4,0,0,0,0,0,0,0,0,Division 7,Newcastle District Cricket Association Inc.',
+    ].join('\n')
+
+    render(
+      <SeasonDashboard
+        seasonJson={seasonData}
+        matchResultsCsv={matchResultsCsv}
+        combinedStatsCsv={tieBreakCsv}
+      />,
+    )
+
+    const leaderboardRegion = screen.getByRole('region', {
+      name: /Leaderboard/i,
+    })
+
+    const runScorerCard = within(leaderboardRegion).getByRole('article', {
+      name: /Leading Run Scorer/i,
+    })
+    expect(within(runScorerCard).getByText('Batter Alpha')).toBeInTheDocument()
+    expect(within(runScorerCard).getByText(/Avg:\s*50/i)).toBeInTheDocument()
+    expect(within(runScorerCard).getByText(/HS:\s*30\*/i)).toBeInTheDocument()
+    const runRunnersUp = within(runScorerCard).getAllByRole('listitem')
+    expect(runRunnersUp[0].textContent).toMatch(/#2.*Batter Beta.*50/i)
+
+    const wicketTakerCard = within(leaderboardRegion).getByRole('article', {
+      name: /Leading Wicket Taker/i,
+    })
+    expect(
+      within(wicketTakerCard).getByText('Bowler Gamma'),
+    ).toBeInTheDocument()
+    expect(within(wicketTakerCard).getByText(/Avg:\s*10/i)).toBeInTheDocument()
+    expect(within(wicketTakerCard).getByText(/BBI:\s*3\/15/i)).toBeInTheDocument()
+    const wicketRunnersUp = within(wicketTakerCard).getAllByRole('listitem')
+    expect(wicketRunnersUp[0].textContent).toMatch(/#2.*Bowler Delta.*4/i)
+  })
 })
