@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import defaultSeasonData from '../data/season.json'
 import defaultMatchResultsCsv from '../2026-10-23-match-results.csv?raw'
 import defaultCombinedStatsCsv from '../2026-10-23-combined-batting-bowling-fielding.csv?raw'
@@ -11,6 +12,13 @@ import {
   selectLastMatch,
   selectNextUpcomingMatch,
 } from './matchResults'
+import {
+  type ManualTalliesConfig,
+  STATS_DISCIPLINES,
+  STATS_DISCIPLINE_ORDER,
+  type StatsDiscipline,
+  parseSeasonStats,
+} from './seasonStats'
 
 export interface TeamMetadata {
   name: string
@@ -41,6 +49,7 @@ export interface SeasonConfig {
   team: TeamMetadata
   season: SeasonMetadata
   ladder?: LadderEntry[]
+  manualTallies?: ManualTalliesConfig
 }
 
 export interface SeasonDashboardProps {
@@ -66,8 +75,10 @@ function parseSeasonConfig(input: SeasonConfig | string): SeasonConfig {
 export function SeasonDashboard({
   seasonJson = defaultSeasonData,
   matchResultsCsv = defaultMatchResultsCsv,
-  combinedStatsCsv: _combinedStatsCsv = defaultCombinedStatsCsv,
+  combinedStatsCsv = defaultCombinedStatsCsv,
 }: SeasonDashboardProps) {
+  const [activeStatsTab, setActiveStatsTab] =
+    useState<StatsDiscipline>('batting')
   const config = parseSeasonConfig(seasonJson)
   const { team, season } = config
   const ladderRows = [...(config.ladder ?? [])].sort(
@@ -76,6 +87,10 @@ export function SeasonDashboard({
   const matches = parseMatchResults(matchResultsCsv)
   const lastMatch = selectLastMatch(matches, season.selectedLastMatchDate)
   const nextUpcomingMatch = selectNextUpcomingMatch(matches)
+  const playerStats = parseSeasonStats(combinedStatsCsv, config.manualTallies)
+  const activeDiscipline = STATS_DISCIPLINES[activeStatsTab]
+  const activeStatsColumns = activeDiscipline.columns
+  const activeStatsRows = activeDiscipline.sortPlayers(playerStats)
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -388,6 +403,99 @@ export function SeasonDashboard({
           )}
         </section>
         </div>
+
+        <section
+          aria-labelledby="season-statistics-heading"
+          className="mt-8 rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg"
+        >
+          <div className="flex flex-col gap-4 border-b border-slate-800 pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <h2
+              id="season-statistics-heading"
+              className="text-lg font-bold tracking-tight text-white"
+            >
+              Season Statistics
+            </h2>
+            <div
+              role="tablist"
+              aria-label="Season Statistics disciplines"
+              className="inline-flex rounded-xl border border-slate-800 bg-slate-950/80 p-1"
+            >
+              {STATS_DISCIPLINE_ORDER.map((tab) => {
+                const isSelected = activeStatsTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isSelected}
+                    onClick={() => setActiveStatsTab(tab.id)}
+                    className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition ${
+                      isSelected
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full border-collapse text-left text-xs sm:text-sm">
+              <thead>
+                <tr className="border-b border-slate-800 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  <th
+                    scope="col"
+                    className="sticky left-0 z-10 bg-slate-900 py-2.5 pr-4 pl-2"
+                  >
+                    Player
+                  </th>
+                  {activeStatsColumns.map((col, idx) => (
+                    <th
+                      key={col.header}
+                      scope="col"
+                      className={`py-2.5 text-right ${
+                        idx === activeStatsColumns.length - 1
+                          ? 'pl-2 pr-2'
+                          : 'px-2'
+                      }`}
+                    >
+                      {col.header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/70">
+                {activeStatsRows.map((player) => (
+                  <tr
+                    key={player.playerKey}
+                    className="text-slate-200 hover:bg-slate-800/30"
+                  >
+                    <td className="sticky left-0 z-10 bg-slate-900 py-2.5 pr-4 pl-2 font-medium whitespace-nowrap text-white">
+                      {player.playerName}
+                    </td>
+                    {activeStatsColumns.map((col, idx) => (
+                      <td
+                        key={col.header}
+                        className={`py-2.5 text-right font-mono ${
+                          col.emphasize ? 'font-bold text-white' : ''
+                        } ${
+                          idx === activeStatsColumns.length - 1
+                            ? 'pl-2 pr-2'
+                            : 'px-2'
+                        }`}
+                      >
+                        {col.renderValue(player)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </main>
     </div>
   )

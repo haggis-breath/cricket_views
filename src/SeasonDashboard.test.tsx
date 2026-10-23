@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, test } from 'vitest'
 import { SeasonDashboard } from './SeasonDashboard'
 import seasonData from '../data/season.json'
@@ -365,5 +365,494 @@ describe('SeasonDashboard', () => {
     expect(opponentRow1).not.toHaveAttribute('aria-current')
     expect(opponentRow3).not.toHaveAttribute('aria-current')
     expect(opponentRow4).not.toHaveAttribute('aria-current')
+  })
+
+  test('renders Season Statistics Batting tab by default with positional CSV columns, normalized player names, not-out HS asterisks, dash for empty averages, sticky Player column, and Runs descending order', () => {
+    render(
+      <SeasonDashboard
+        seasonJson={seasonData}
+        matchResultsCsv={matchResultsCsv}
+        combinedStatsCsv={combinedStatsCsv}
+      />,
+    )
+
+    const statsRegion = screen.getByRole('region', {
+      name: /Season Statistics/i,
+    })
+
+    const battingTab = within(statsRegion).getByRole('tab', { name: /Batting/i })
+    const bowlingTab = within(statsRegion).getByRole('tab', { name: /Bowling/i })
+    const fieldingTab = within(statsRegion).getByRole('tab', {
+      name: /Fielding/i,
+    })
+
+    expect(battingTab).toHaveAttribute('aria-selected', 'true')
+    expect(bowlingTab).toHaveAttribute('aria-selected', 'false')
+    expect(fieldingTab).toHaveAttribute('aria-selected', 'false')
+
+    const table = within(statsRegion).getByRole('table')
+    const headers = within(table).getAllByRole('columnheader')
+    expect(headers.map((h) => h.textContent)).toEqual([
+      'Player',
+      'M',
+      'Inn',
+      'NO',
+      'Runs',
+      'HS',
+      'Avg',
+      'BF',
+      'SR',
+      '50s',
+      '100s',
+      '4s',
+      '6s',
+      '0s',
+    ])
+
+    // Sticky left Player column header
+    expect(headers[0].className).toMatch(/sticky/)
+    expect(headers[0].className).toMatch(/left-0/)
+
+    const rows = within(table).getAllByRole('row')
+    // 1 header row + 14 players from CSV
+    expect(rows.length).toBeGreaterThanOrEqual(15)
+
+    // Top scorer: Thomas Peeters (64 runs, HS 64 without *, Batting Avg 64 at col 4, Batting SR 104.92 at col 13)
+    const row1Cells = within(rows[1]).getAllByRole('cell')
+    expect(row1Cells[0].className).toMatch(/sticky/)
+    expect(row1Cells[0].className).toMatch(/left-0/)
+    expect(row1Cells.map((c) => c.textContent)).toEqual([
+      'Thomas Peeters',
+      '1',
+      '1',
+      '0',
+      '64',
+      '64',
+      '64',
+      '61',
+      '104.92',
+      '1',
+      '0',
+      '11',
+      '0',
+      '0',
+    ])
+
+    // 2nd scorer: Alistair Osborne (Batting Avg 17 from col 4, not Bowling Avg 4.83 from col 22; Batting SR 117.24 from col 13, not Bowling SR 10 from col 23)
+    const row2Cells = within(rows[2]).getAllByRole('cell')
+    expect(row2Cells.map((c) => c.textContent)).toEqual([
+      'Alistair Osborne',
+      '2',
+      '2',
+      '0',
+      '34',
+      '27',
+      '17',
+      '29',
+      '117.24',
+      '0',
+      '0',
+      '3',
+      '2',
+      '0',
+    ])
+
+    // Kale Hook: 2 innings, 2 not outs, empty Batting Average -> '-', High Score 4 with dismissal status true -> '4*'
+    const kaleRow = rows.find((r) =>
+      within(r).queryByText('Kale Hook'),
+    )
+    expect(kaleRow).toBeDefined()
+    expect(
+      within(kaleRow!)
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual([
+      'Kale Hook',
+      '2',
+      '2',
+      '2',
+      '8',
+      '4*',
+      '-',
+      '21',
+      '38.1',
+      '0',
+      '0',
+      '0',
+      '0',
+      '0',
+    ])
+
+    // Nathan Standing: High Score 3 with dismissal status true -> '3*'
+    const nathanRow = rows.find((r) =>
+      within(r).queryByText('Nathan Standing'),
+    )
+    expect(nathanRow).toBeDefined()
+    expect(
+      within(nathanRow!)
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual([
+      'Nathan Standing',
+      '2',
+      '2',
+      '1',
+      '3',
+      '3*',
+      '3',
+      '8',
+      '37.5',
+      '0',
+      '0',
+      '0',
+      '0',
+      '1',
+    ])
+  })
+
+  test('switches to Bowling tab and displays positional bowling stats, Balls Bowled to overs.balls conversion, W--R BBI formatting, dash for undefined bowling rates, and default sort by Wickets desc then Avg asc', () => {
+    render(
+      <SeasonDashboard
+        seasonJson={seasonData}
+        matchResultsCsv={matchResultsCsv}
+        combinedStatsCsv={combinedStatsCsv}
+      />,
+    )
+
+    const statsRegion = screen.getByRole('region', {
+      name: /Season Statistics/i,
+    })
+
+    const bowlingTab = within(statsRegion).getByRole('tab', { name: /Bowling/i })
+    fireEvent.click(bowlingTab)
+
+    expect(bowlingTab).toHaveAttribute('aria-selected', 'true')
+    expect(
+      within(statsRegion).getByRole('tab', { name: /Batting/i }),
+    ).toHaveAttribute('aria-selected', 'false')
+
+    const table = within(statsRegion).getByRole('table')
+    const headers = within(table).getAllByRole('columnheader')
+    expect(headers.map((h) => h.textContent)).toEqual([
+      'Player',
+      'M',
+      'O',
+      'Mdn',
+      'R',
+      'Wkts',
+      'Avg',
+      'Econ',
+      'SR',
+      'BBI',
+      '5W',
+      'Wd',
+      'NB',
+    ])
+    expect(headers[0].className).toMatch(/sticky/)
+    expect(headers[0].className).toMatch(/left-0/)
+
+    const rows = within(table).getAllByRole('row')
+
+    // #1 bowler: Alistair Osborne (60 balls -> 10 overs, 29 runs conceded from col 18, 6 wkts, Bowling Avg 4.83 from col 22, Econ 2.9, Bowling SR 10 from col 23, BBI 4--18 -> 4/18)
+    expect(
+      within(rows[1])
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual([
+      'Alistair Osborne',
+      '2',
+      '10',
+      '0',
+      '29',
+      '6',
+      '4.83',
+      '2.9',
+      '10',
+      '4/18',
+      '0',
+      '0',
+      '0',
+    ])
+
+    // #2 bowler: Mitchell Owen (48 balls -> 8 overs, 49 runs, 4 wkts, Avg 12.25, Econ 6.13, SR 12, BBI 2--20 -> 2/20, 9 wides, 3 no balls)
+    expect(
+      within(rows[2])
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual([
+      'Mitchell Owen',
+      '2',
+      '8',
+      '0',
+      '49',
+      '4',
+      '12.25',
+      '6.13',
+      '12',
+      '2/20',
+      '0',
+      '9',
+      '3',
+    ])
+
+    // #3 bowler: Brock Estatheo (42 balls -> 7 overs, 50 runs, 2 wkts, Avg 25, Econ 7.14, SR 21, BBI 2--50 -> 2/50)
+    expect(
+      within(rows[3])
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual([
+      'Brock Estatheo',
+      '1',
+      '7',
+      '0',
+      '50',
+      '2',
+      '25',
+      '7.14',
+      '21',
+      '2/50',
+      '0',
+      '1',
+      '3',
+    ])
+
+    // 1-wicket bowlers tie-broken by Bowling Avg ascending:
+    // #4: Martin Bigg (27 balls -> 4.3 overs, 1 wkt, Avg 9, BBI 1--9 -> 1/9)
+    // #5: Ewan Bauer (42 balls -> 7 overs, 1 wkt, Avg 26, BBI 1--26 -> 1/26)
+    // #6: Andrew Moffat (66 balls -> 11 overs, 1 wkt, Avg 63, BBI 1--37 -> 1/37)
+    expect(
+      within(rows[4])
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual([
+      'Martin Bigg',
+      '1',
+      '4.3',
+      '0',
+      '9',
+      '1',
+      '9',
+      '2',
+      '27',
+      '1/9',
+      '0',
+      '0',
+      '0',
+    ])
+    expect(
+      within(rows[5])
+        .getAllByRole('cell')
+        .map((c) => c.textContent)[0],
+    ).toBe('Ewan Bauer')
+    expect(
+      within(rows[6])
+        .getAllByRole('cell')
+        .map((c) => c.textContent)[0],
+    ).toBe('Andrew Moffat')
+
+    // Thomas Peeters: 18 balls -> 3 overs, 0 wkts, Avg '-', Econ 4.67, SR '-', BBI 0--14 -> 0/14
+    const peetersRow = rows.find((r) =>
+      within(r).queryByText('Thomas Peeters'),
+    )
+    expect(
+      within(peetersRow!)
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual([
+      'Thomas Peeters',
+      '1',
+      '3',
+      '0',
+      '14',
+      '0',
+      '-',
+      '4.67',
+      '-',
+      '0/14',
+      '0',
+      '0',
+      '0',
+    ])
+
+    // Hayden Barrett: 9 balls -> 1.3 overs, 10 runs, 0 wkts, BBI 0--10 -> 0/10
+    const barrettRow = rows.find((r) =>
+      within(r).queryByText('Hayden Barrett'),
+    )
+    expect(
+      within(barrettRow!)
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual([
+      'Hayden Barrett',
+      '1',
+      '1.3',
+      '0',
+      '10',
+      '0',
+      '-',
+      '6.67',
+      '-',
+      '0/10',
+      '0',
+      '0',
+      '1',
+    ])
+
+    // Tyran Cameron: 0 balls -> 0 overs, BBI '--' -> '-', Avg/Econ/SR '-'
+    const cameronRow = rows.find((r) =>
+      within(r).queryByText('Tyran Cameron'),
+    )
+    expect(
+      within(cameronRow!)
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual([
+      'Tyran Cameron',
+      '1',
+      '0',
+      '0',
+      '0',
+      '0',
+      '-',
+      '-',
+      '-',
+      '-',
+      '0',
+      '0',
+      '0',
+    ])
+  })
+
+  test('switches to Fielding tab, computes RO and Total Dismissals (Dis) sorted descending, merges Manual Tallies dropped catches across "Last, First" and "First Last" formats (case-insensitive, trimmed), and synthesizes players only in Manual Tallies', () => {
+    // Augment CSV row to exercise WK catches, unassisted + assisted run outs, and stumpings alongside real Division 7 data
+    const customCsv = [
+      combinedStatsCsv.trim(),
+      '"Keeper, Alex",Beresfield Memorial Cricket Club,2,1,15,15,20,0,0,0,0,15,false,75,2,0,0,0,0,0,0,--,,,,0,0,0,2,2,1,1,1,Division 7,Newcastle District Cricket Association Inc.',
+    ].join('\n')
+
+    const customSeasonJson = {
+      ...seasonData,
+      manualTallies: {
+        droppedCatches: {
+          '  osborne, alistair ': 1,
+          'Andrew Moffat': 2,
+          'Bauer, Ewan': 1,
+          'Newcomer, Jordan': 3,
+        },
+      },
+    }
+
+    render(
+      <SeasonDashboard
+        seasonJson={customSeasonJson}
+        matchResultsCsv={matchResultsCsv}
+        combinedStatsCsv={customCsv}
+      />,
+    )
+
+    const statsRegion = screen.getByRole('region', {
+      name: /Season Statistics/i,
+    })
+
+    const fieldingTab = within(statsRegion).getByRole('tab', {
+      name: /Fielding/i,
+    })
+    fireEvent.click(fieldingTab)
+
+    expect(fieldingTab).toHaveAttribute('aria-selected', 'true')
+    expect(
+      within(statsRegion).getByRole('tab', { name: /Batting/i }),
+    ).toHaveAttribute('aria-selected', 'false')
+    expect(
+      within(statsRegion).getByRole('tab', { name: /Bowling/i }),
+    ).toHaveAttribute('aria-selected', 'false')
+
+    const table = within(statsRegion).getByRole('table')
+    const headers = within(table).getAllByRole('columnheader')
+    expect(headers.map((h) => h.textContent)).toEqual([
+      'Player',
+      'M',
+      'Ct',
+      'WK Ct',
+      'Tot Ct',
+      'RO',
+      'St',
+      'Dis',
+      'Drops',
+    ])
+    expect(headers[0].className).toMatch(/sticky/)
+    expect(headers[0].className).toMatch(/left-0/)
+
+    const rows = within(table).getAllByRole('row')
+
+    // #1 fielder by Total Dismissals: Alex Keeper (0 non-WK + 2 WK = 2 Tot Ct, 1 unassisted + 1 assisted = 2 RO, 1 St -> 5 Dis, 0 Drops)
+    expect(
+      within(rows[1])
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual(['Alex Keeper', '2', '0', '2', '2', '2', '1', '5', '0'])
+
+    // #2 fielder: Alistair Osborne (3 Ct, 0 WK Ct, 3 Tot Ct, 0 RO, 0 St, 3 Dis, 1 Drop matched from '  osborne, alistair ')
+    expect(
+      within(rows[2])
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual(['Alistair Osborne', '2', '3', '0', '3', '0', '0', '3', '1'])
+
+    // Ewan Bauer (2 Dis, 1 Drop matched from 'Bauer, Ewan') and Andrew Moffat (2 Dis, 2 Drops matched from 'Andrew Moffat')
+    const moffatRow = rows.find((r) =>
+      within(r).queryByText('Andrew Moffat'),
+    )
+    expect(
+      within(moffatRow!)
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual(['Andrew Moffat', '2', '2', '0', '2', '0', '0', '2', '2'])
+
+    const bauerRow = rows.find((r) => within(r).queryByText('Ewan Bauer'))
+    expect(
+      within(bauerRow!)
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual(['Ewan Bauer', '2', '2', '0', '2', '0', '0', '2', '1'])
+
+    // Synthesized player present only in Manual Tallies: 'Newcomer, Jordan' -> 'Jordan Newcomer' with 3 Drops and 0s elsewhere
+    const newcomerFieldingRow = rows.find((r) =>
+      within(r).queryByText('Jordan Newcomer'),
+    )
+    expect(newcomerFieldingRow).toBeDefined()
+    expect(
+      within(newcomerFieldingRow!)
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual(['Jordan Newcomer', '0', '0', '0', '0', '0', '0', '0', '3'])
+
+    // Switching back to Batting tab shows Jordan Newcomer synthesized with '-' for HS, Avg, and SR
+    fireEvent.click(within(statsRegion).getByRole('tab', { name: /Batting/i }))
+    const battingTable = within(statsRegion).getByRole('table')
+    const newcomerBattingRow = within(battingTable)
+      .getAllByRole('row')
+      .find((r) => within(r).queryByText('Jordan Newcomer'))
+    expect(newcomerBattingRow).toBeDefined()
+    expect(
+      within(newcomerBattingRow!)
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual([
+      'Jordan Newcomer',
+      '0',
+      '0',
+      '0',
+      '0',
+      '-',
+      '-',
+      '0',
+      '-',
+      '0',
+      '0',
+      '0',
+      '0',
+      '0',
+    ])
   })
 })
