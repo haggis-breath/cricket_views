@@ -16,6 +16,7 @@ import {
   type ManualTalliesConfig,
   STATS_DISCIPLINES,
   STATS_DISCIPLINE_ORDER,
+  type SortDirection,
   type StatsDiscipline,
   parseSeasonStats,
 } from './seasonStats'
@@ -79,6 +80,22 @@ export function SeasonDashboard({
 }: SeasonDashboardProps) {
   const [activeStatsTab, setActiveStatsTab] =
     useState<StatsDiscipline>('batting')
+  const [sortStateByTab, setSortStateByTab] = useState<
+    Record<StatsDiscipline, { header: string; direction: SortDirection }>
+  >({
+    batting: {
+      header: STATS_DISCIPLINES.batting.defaultSortHeader,
+      direction: STATS_DISCIPLINES.batting.defaultSortDirection,
+    },
+    bowling: {
+      header: STATS_DISCIPLINES.bowling.defaultSortHeader,
+      direction: STATS_DISCIPLINES.bowling.defaultSortDirection,
+    },
+    fielding: {
+      header: STATS_DISCIPLINES.fielding.defaultSortHeader,
+      direction: STATS_DISCIPLINES.fielding.defaultSortDirection,
+    },
+  })
   const config = parseSeasonConfig(seasonJson)
   const { team, season } = config
   const ladderRows = [...(config.ladder ?? [])].sort(
@@ -90,7 +107,34 @@ export function SeasonDashboard({
   const playerStats = parseSeasonStats(combinedStatsCsv, config.manualTallies)
   const activeDiscipline = STATS_DISCIPLINES[activeStatsTab]
   const activeStatsColumns = activeDiscipline.columns
-  const activeStatsRows = activeDiscipline.sortPlayers(playerStats)
+  const activeSort = sortStateByTab[activeStatsTab]
+  const activeStatsRows = activeDiscipline.sortPlayers(
+    playerStats,
+    activeSort.header,
+    activeSort.direction,
+  )
+
+  const handleSortColumnClick = (header: string, defaultDirection: SortDirection = 'desc') => {
+    setSortStateByTab((prev) => {
+      const current = prev[activeStatsTab]
+      if (current.header === header) {
+        return {
+          ...prev,
+          [activeStatsTab]: {
+            header,
+            direction: current.direction === 'desc' ? 'asc' : 'desc',
+          },
+        }
+      }
+      return {
+        ...prev,
+        [activeStatsTab]: {
+          header,
+          direction: defaultDirection,
+        },
+      }
+    })
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -448,23 +492,98 @@ export function SeasonDashboard({
                 <tr className="border-b border-slate-800 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                   <th
                     scope="col"
+                    aria-sort={
+                      activeSort.header === 'Player'
+                        ? activeSort.direction === 'desc'
+                          ? 'descending'
+                          : 'ascending'
+                        : 'none'
+                    }
                     className="sticky left-0 z-10 bg-slate-900 py-2.5 pr-4 pl-2"
                   >
-                    Player
-                  </th>
-                  {activeStatsColumns.map((col, idx) => (
-                    <th
-                      key={col.header}
-                      scope="col"
-                      className={`py-2.5 text-right ${
-                        idx === activeStatsColumns.length - 1
-                          ? 'pl-2 pr-2'
-                          : 'px-2'
+                    <button
+                      type="button"
+                      onClick={() => handleSortColumnClick('Player', 'asc')}
+                      className={`inline-flex items-center gap-1 uppercase tracking-wider transition ${
+                        activeSort.header === 'Player'
+                          ? 'font-bold text-emerald-400'
+                          : 'font-semibold text-slate-400 hover:text-slate-200'
                       }`}
                     >
-                      {col.header}
-                    </th>
-                  ))}
+                      <span>Player</span>
+                      {activeSort.header === 'Player' && (
+                        <span
+                          aria-hidden="true"
+                          className="inline-flex items-center"
+                        >
+                          <svg
+                            viewBox="0 0 10 10"
+                            className="h-2.5 w-2.5 fill-current"
+                          >
+                            {activeSort.direction === 'desc' ? (
+                              <path d="M1 3h8L5 8z" />
+                            ) : (
+                              <path d="M1 7h8L5 2z" />
+                            )}
+                          </svg>
+                        </span>
+                      )}
+                    </button>
+                  </th>
+                  {activeStatsColumns.map((col, idx) => {
+                    const isActiveSort = activeSort.header === col.header
+                    const ariaSort = isActiveSort
+                      ? activeSort.direction === 'desc'
+                        ? 'descending'
+                        : 'ascending'
+                      : 'none'
+                    return (
+                      <th
+                        key={col.header}
+                        scope="col"
+                        aria-sort={ariaSort}
+                        className={`py-2.5 text-right ${
+                          idx === activeStatsColumns.length - 1
+                            ? 'pl-2 pr-2'
+                            : 'px-2'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleSortColumnClick(
+                              col.header,
+                              col.defaultDirection ?? 'desc',
+                            )
+                          }
+                          className={`inline-flex items-center justify-end gap-1 uppercase tracking-wider transition ${
+                            isActiveSort
+                              ? 'font-bold text-emerald-400'
+                              : 'font-semibold text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <span>{col.header}</span>
+                          {isActiveSort && (
+                            <span
+                              aria-hidden="true"
+                              className="inline-flex items-center"
+                            >
+                              <svg
+                                viewBox="0 0 10 10"
+                                className="h-2.5 w-2.5 fill-current"
+                              >
+                                {activeSort.direction === 'desc' ? (
+                                  <path d="M1 3h8L5 8z" />
+                                ) : (
+                                  <path d="M1 7h8L5 2z" />
+                                )}
+                              </svg>
+                            </span>
+                          )}
+                        </button>
+                      </th>
+                    )
+                  })}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/70">

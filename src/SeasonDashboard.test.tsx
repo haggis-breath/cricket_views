@@ -855,4 +855,562 @@ describe('SeasonDashboard', () => {
       '0',
     ])
   })
+
+  test('sorts Batting Season Statistics columns when clicking column headers and toggles between descending and ascending with aria-sort', () => {
+    render(
+      <SeasonDashboard
+        seasonJson={seasonData}
+        matchResultsCsv={matchResultsCsv}
+        combinedStatsCsv={combinedStatsCsv}
+      />,
+    )
+
+    const statsRegion = screen.getByRole('region', {
+      name: /Season Statistics/i,
+    })
+    const table = within(statsRegion).getByRole('table')
+
+    // By default, Batting is sorted by Runs descending
+    const playerHeader = within(table).getByRole('columnheader', {
+      name: /^Player/i,
+    })
+    const runsHeader = within(table).getByRole('columnheader', {
+      name: /^Runs/i,
+    })
+    const bfHeader = within(table).getByRole('columnheader', { name: /^BF/i })
+    expect(runsHeader).toHaveAttribute('aria-sort', 'descending')
+    expect(bfHeader).toHaveAttribute('aria-sort', 'none')
+    expect(playerHeader).toHaveAttribute('aria-sort', 'none')
+
+    // Clicking active 'Runs' header toggles to ascending
+    fireEvent.click(within(runsHeader).getByRole('button'))
+    expect(runsHeader).toHaveAttribute('aria-sort', 'ascending')
+
+    let rows = within(table).getAllByRole('row')
+    // Lowest runs: Joseph Chenery (0 runs)
+    expect(within(rows[1]).getAllByRole('cell')[0].textContent).toBe(
+      'Joseph Chenery',
+    )
+    // Highest runs at bottom: Thomas Peeters (64 runs)
+    expect(
+      within(rows[rows.length - 1]).getAllByRole('cell')[0].textContent,
+    ).toBe('Thomas Peeters')
+
+    // Clicking 'BF' header sorts by Balls Faced descending
+    fireEvent.click(within(bfHeader).getByRole('button'))
+    expect(bfHeader).toHaveAttribute('aria-sort', 'descending')
+    expect(runsHeader).toHaveAttribute('aria-sort', 'none')
+
+    rows = within(table).getAllByRole('row')
+    // Top 3 BF: Thomas Peeters (61), Cameron Haines (43), Andrew Moffat (37)
+    expect(
+      rows
+        .slice(1, 4)
+        .map((r) => within(r).getAllByRole('cell')[0].textContent),
+    ).toEqual(['Thomas Peeters', 'Cameron Haines', 'Andrew Moffat'])
+
+    // Clicking 'BF' again toggles to ascending
+    fireEvent.click(within(bfHeader).getByRole('button'))
+    expect(bfHeader).toHaveAttribute('aria-sort', 'ascending')
+    rows = within(table).getAllByRole('row')
+    expect(within(rows[1]).getAllByRole('cell')[0].textContent).toBe(
+      'Joseph Chenery',
+    )
+
+    // Clicking 'Player' header sorts alphabetically ascending, then toggles to descending
+    fireEvent.click(within(playerHeader).getByRole('button'))
+    expect(playerHeader).toHaveAttribute('aria-sort', 'ascending')
+    rows = within(table).getAllByRole('row')
+    expect(within(rows[1]).getAllByRole('cell')[0].textContent).toBe(
+      'Alistair Osborne',
+    )
+    expect(
+      within(rows[rows.length - 1]).getAllByRole('cell')[0].textContent,
+    ).toBe('Tyran Cameron')
+
+    fireEvent.click(within(playerHeader).getByRole('button'))
+    expect(playerHeader).toHaveAttribute('aria-sort', 'descending')
+    rows = within(table).getAllByRole('row')
+    expect(within(rows[1]).getAllByRole('cell')[0].textContent).toBe(
+      'Tyran Cameron',
+    )
+    expect(
+      within(rows[rows.length - 1]).getAllByRole('cell')[0].textContent,
+    ).toBe('Alistair Osborne')
+  })
+
+  test('sorts Highest Score (HS) numerically rather than alphabetically, ranking not-out scores ahead of equal dismissed scores (64* > 64 > 27 > 4* > 4) and sinking "-" to the bottom', () => {
+    const customCsv = [
+      combinedStatsCsv.trim(),
+      // Unbeaten 64* to compare directly against Thomas Peeters (64 dismissed)
+      '"Unbeaten, Star",Beresfield Memorial Cricket Club,1,1,,64,50,1,1,0,0,64,true,128,8,1,0,0,0,0,0,--,,,,0,0,0,0,0,0,0,0,Division 7,Newcastle District Cricket Association Inc.',
+      // Dismissed 4 to compare directly against Kale Hook (4*)
+      '"Dismissed, Four",Beresfield Memorial Cricket Club,1,1,4,4,10,0,0,0,0,4,false,40,1,0,0,0,0,0,0,--,,,,0,0,0,0,0,0,0,0,Division 7,Newcastle District Cricket Association Inc.',
+      // 0 innings -> HS "-"
+      '"DidNotBat, Sam",Beresfield Memorial Cricket Club,1,0,,0,0,0,0,0,0,0,false,,0,0,0,0,0,0,0,--,,,,0,0,0,0,0,0,0,0,Division 7,Newcastle District Cricket Association Inc.',
+    ].join('\n')
+
+    render(
+      <SeasonDashboard
+        seasonJson={seasonData}
+        matchResultsCsv={matchResultsCsv}
+        combinedStatsCsv={customCsv}
+      />,
+    )
+
+    const statsRegion = screen.getByRole('region', {
+      name: /Season Statistics/i,
+    })
+    const table = within(statsRegion).getByRole('table')
+    const hsHeader = within(table).getByRole('columnheader', { name: /^HS/i })
+
+    // Sort by HS descending
+    fireEvent.click(within(hsHeader).getByRole('button'))
+    expect(hsHeader).toHaveAttribute('aria-sort', 'descending')
+
+    let rows = within(table).getAllByRole('row').slice(1)
+    const descNamesAndHs = rows.map((r) => {
+      const cells = within(r).getAllByRole('cell')
+      return `${cells[0].textContent}:${cells[5].textContent}`
+    })
+
+    // Verify 64* > 64 > 27 ... > 4* > 4 > 3* > 0 > -
+    const idx64Star = descNamesAndHs.indexOf('Star Unbeaten:64*')
+    const idx64 = descNamesAndHs.indexOf('Thomas Peeters:64')
+    const idx27 = descNamesAndHs.indexOf('Alistair Osborne:27')
+    const idx11 = descNamesAndHs.indexOf('Ewan Bauer:11')
+    const idx8 = descNamesAndHs.indexOf('Craig Hearnden:8')
+    const idx4Star = descNamesAndHs.indexOf('Kale Hook:4*')
+    const idx4 = descNamesAndHs.indexOf('Four Dismissed:4')
+    const idx3Star = descNamesAndHs.indexOf('Nathan Standing:3*')
+    const idx0 = descNamesAndHs.indexOf('Joseph Chenery:0')
+    const idxDash = descNamesAndHs.indexOf('Sam DidNotBat:-')
+
+    expect(idx64Star).toBe(0)
+    expect(idx64).toBe(1)
+    expect(idx27).toBeGreaterThan(idx64)
+    // Numeric comparison: 11 > 8 (alphabetical would put 8 before 11)
+    expect(idx8).toBeGreaterThan(idx11)
+    expect(idx4Star).toBeGreaterThan(idx8)
+    expect(idx4).toBe(idx4Star + 1)
+    expect(idx3Star).toBe(idx4 + 1)
+    expect(idx0).toBe(idx3Star + 1)
+    // Undefined '-' sinks to the bottom in descending order
+    expect(idxDash).toBe(descNamesAndHs.length - 1)
+
+    // Toggle to HS ascending
+    fireEvent.click(within(hsHeader).getByRole('button'))
+    expect(hsHeader).toHaveAttribute('aria-sort', 'ascending')
+
+    rows = within(table).getAllByRole('row').slice(1)
+    const ascNamesAndHs = rows.map((r) => {
+      const cells = within(r).getAllByRole('cell')
+      return `${cells[0].textContent}:${cells[5].textContent}`
+    })
+
+    // In ascending order: 0 < 3* < 4 < 4* ... < 64 < 64*, and '-' still sinks to the bottom
+    expect(ascNamesAndHs[0]).toBe('Joseph Chenery:0')
+    expect(ascNamesAndHs[1]).toBe('Nathan Standing:3*')
+    expect(ascNamesAndHs[2]).toBe('Four Dismissed:4')
+    expect(ascNamesAndHs[3]).toBe('Kale Hook:4*')
+    expect(ascNamesAndHs[ascNamesAndHs.length - 3]).toBe('Thomas Peeters:64')
+    expect(ascNamesAndHs[ascNamesAndHs.length - 2]).toBe('Star Unbeaten:64*')
+    expect(ascNamesAndHs[ascNamesAndHs.length - 1]).toBe('Sam DidNotBat:-')
+  })
+
+  test('sorts Best Bowling (BBI) by wickets descending then runs ascending (4/18 > 2/20 > 2/50 > 1/9 > 0/6) and places "-" at the bottom in both directions', () => {
+    render(
+      <SeasonDashboard
+        seasonJson={seasonData}
+        matchResultsCsv={matchResultsCsv}
+        combinedStatsCsv={combinedStatsCsv}
+      />,
+    )
+
+    const statsRegion = screen.getByRole('region', {
+      name: /Season Statistics/i,
+    })
+    fireEvent.click(within(statsRegion).getByRole('tab', { name: /Bowling/i }))
+
+    const table = within(statsRegion).getByRole('table')
+    const bbiHeader = within(table).getByRole('columnheader', { name: /^BBI/i })
+
+    // Click BBI to sort descending (best bowling figures first)
+    fireEvent.click(within(bbiHeader).getByRole('button'))
+    expect(bbiHeader).toHaveAttribute('aria-sort', 'descending')
+
+    let rows = within(table).getAllByRole('row').slice(1)
+    const descBbis = rows.map(
+      (r) => within(r).getAllByRole('cell')[9].textContent,
+    )
+
+    // First 10 bowlers have bowled balls: 4/18 > 2/20 > 2/50 > 1/9 > 1/26 > 1/37 > 0/6 > 0/10 > 0/14 > 0/17
+    // Remaining 4 players have '-' at the bottom
+    expect(descBbis.slice(0, 10)).toEqual([
+      '4/18',
+      '2/20',
+      '2/50',
+      '1/9',
+      '1/26',
+      '1/37',
+      '0/6',
+      '0/10',
+      '0/14',
+      '0/17',
+    ])
+    expect(descBbis.slice(10)).toEqual(['-', '-', '-', '-'])
+
+    // Click BBI again to sort ascending (worst defined figures first, '-' still at the bottom)
+    fireEvent.click(within(bbiHeader).getByRole('button'))
+    expect(bbiHeader).toHaveAttribute('aria-sort', 'ascending')
+
+    rows = within(table).getAllByRole('row').slice(1)
+    const ascBbis = rows.map(
+      (r) => within(r).getAllByRole('cell')[9].textContent,
+    )
+
+    expect(ascBbis.slice(0, 10)).toEqual([
+      '0/17',
+      '0/14',
+      '0/10',
+      '0/6',
+      '1/37',
+      '1/26',
+      '1/9',
+      '2/50',
+      '2/20',
+      '4/18',
+    ])
+    expect(ascBbis.slice(10)).toEqual(['-', '-', '-', '-'])
+  })
+
+  test('sorts Overs (O) accurately by total balls bowled (11 > 10 > 8 > 7 > 6 > 4.3 > 3 > 1.3 > 1 > 0)', () => {
+    render(
+      <SeasonDashboard
+        seasonJson={seasonData}
+        matchResultsCsv={matchResultsCsv}
+        combinedStatsCsv={combinedStatsCsv}
+      />,
+    )
+
+    const statsRegion = screen.getByRole('region', {
+      name: /Season Statistics/i,
+    })
+    fireEvent.click(within(statsRegion).getByRole('tab', { name: /Bowling/i }))
+
+    const table = within(statsRegion).getByRole('table')
+    const oversHeader = within(table).getByRole('columnheader', {
+      name: /^O$/i,
+    })
+
+    // Click 'O' to sort descending
+    fireEvent.click(within(oversHeader).getByRole('button'))
+    expect(oversHeader).toHaveAttribute('aria-sort', 'descending')
+
+    let rows = within(table).getAllByRole('row').slice(1)
+    const descOvers = rows.map(
+      (r) => within(r).getAllByRole('cell')[2].textContent,
+    )
+
+    // 11 (66 balls) > 10 (60 balls) > 8 (48 balls) > 7 (42 balls) > 7 (42 balls) > 6 (36 balls) > 4.3 (27 balls) > 3 (18 balls) > 1.3 (9 balls) > 1 (6 balls) > 0s
+    expect(descOvers).toEqual([
+      '11',
+      '10',
+      '8',
+      '7',
+      '7',
+      '6',
+      '4.3',
+      '3',
+      '1.3',
+      '1',
+      '0',
+      '0',
+      '0',
+      '0',
+    ])
+
+    // Click 'O' again to sort ascending
+    fireEvent.click(within(oversHeader).getByRole('button'))
+    expect(oversHeader).toHaveAttribute('aria-sort', 'ascending')
+
+    rows = within(table).getAllByRole('row').slice(1)
+    const ascOvers = rows.map(
+      (r) => within(r).getAllByRole('cell')[2].textContent,
+    )
+
+    expect(ascOvers).toEqual([
+      '0',
+      '0',
+      '0',
+      '0',
+      '1',
+      '1.3',
+      '3',
+      '4.3',
+      '6',
+      '7',
+      '7',
+      '8',
+      '10',
+      '11',
+    ])
+  })
+
+  test('sorts Batting Avg and SR numerically while sinking undefined "-" values (such as Kale Hook) to the bottom in both ascending and descending directions, and includes all players without a qualification filter toggle', () => {
+    const customSeasonJson = {
+      ...seasonData,
+      manualTallies: {
+        droppedCatches: {
+          'Newcomer, Jordan': 2,
+        },
+      },
+    }
+
+    render(
+      <SeasonDashboard
+        seasonJson={customSeasonJson}
+        matchResultsCsv={matchResultsCsv}
+        combinedStatsCsv={combinedStatsCsv}
+      />,
+    )
+
+    const statsRegion = screen.getByRole('region', {
+      name: /Season Statistics/i,
+    })
+
+    // No qualification filter toggle exists anywhere in Season Statistics
+    expect(
+      within(statsRegion).queryByRole('checkbox'),
+    ).not.toBeInTheDocument()
+    expect(
+      within(statsRegion).queryByText(/qualif/i),
+    ).not.toBeInTheDocument()
+
+    // Batting Avg: Kale Hook ('-') and Jordan Newcomer ('-') sink to the bottom in both directions
+    const table = within(statsRegion).getByRole('table')
+    const battingAvgHeader = within(table).getByRole('columnheader', {
+      name: /^Avg$/i,
+    })
+
+    fireEvent.click(within(battingAvgHeader).getByRole('button'))
+    expect(battingAvgHeader).toHaveAttribute('aria-sort', 'descending')
+
+    let rows = within(table).getAllByRole('row').slice(1)
+    // All 15 players (14 CSV + 1 synthesized) are included
+    expect(rows).toHaveLength(15)
+    let battingAvgs = rows.map(
+      (r) => within(r).getAllByRole('cell')[6].textContent,
+    )
+    expect(battingAvgs).toEqual([
+      '64',
+      '27',
+      '24',
+      '20',
+      '17',
+      '11',
+      '10',
+      '8',
+      '7.5',
+      '6.5',
+      '6',
+      '3',
+      '0',
+      '-',
+      '-',
+    ])
+
+    // Toggle Batting Avg to ascending -> '0' first, '64' before the two '-' at the bottom
+    fireEvent.click(within(battingAvgHeader).getByRole('button'))
+    expect(battingAvgHeader).toHaveAttribute('aria-sort', 'ascending')
+    rows = within(table).getAllByRole('row').slice(1)
+    battingAvgs = rows.map(
+      (r) => within(r).getAllByRole('cell')[6].textContent,
+    )
+    expect(battingAvgs).toEqual([
+      '0',
+      '3',
+      '6',
+      '6.5',
+      '7.5',
+      '8',
+      '10',
+      '11',
+      '17',
+      '20',
+      '24',
+      '27',
+      '64',
+      '-',
+      '-',
+    ])
+
+    // Batting SR: Jordan Newcomer ('-') sinks to the bottom in both directions
+    const battingSrHeader = within(table).getByRole('columnheader', {
+      name: /^SR$/i,
+    })
+    fireEvent.click(within(battingSrHeader).getByRole('button'))
+    expect(battingSrHeader).toHaveAttribute('aria-sort', 'descending')
+    rows = within(table).getAllByRole('row').slice(1)
+    let battingSrs = rows.map(
+      (r) => within(r).getAllByRole('cell')[8].textContent,
+    )
+    expect(battingSrs[0]).toBe('117.24')
+    expect(battingSrs[1]).toBe('104.92')
+    expect(battingSrs[battingSrs.length - 2]).toBe('0')
+    expect(battingSrs[battingSrs.length - 1]).toBe('-')
+
+    fireEvent.click(within(battingSrHeader).getByRole('button'))
+    expect(battingSrHeader).toHaveAttribute('aria-sort', 'ascending')
+    rows = within(table).getAllByRole('row').slice(1)
+    battingSrs = rows.map(
+      (r) => within(r).getAllByRole('cell')[8].textContent,
+    )
+    expect(battingSrs[0]).toBe('0')
+    expect(battingSrs[battingSrs.length - 2]).toBe('117.24')
+    expect(battingSrs[battingSrs.length - 1]).toBe('-')
+  })
+
+  test('sorts Bowling Avg, Econ, and SR numerically while sinking undefined "-" values (0-wicket or 0-ball bowlers) to the bottom in both ascending and descending directions, and sorts Fielding columns interactively', () => {
+    const customSeasonJson = {
+      ...seasonData,
+      manualTallies: {
+        droppedCatches: {
+          'Newcomer, Jordan': 2,
+        },
+      },
+    }
+
+    render(
+      <SeasonDashboard
+        seasonJson={customSeasonJson}
+        matchResultsCsv={matchResultsCsv}
+        combinedStatsCsv={combinedStatsCsv}
+      />,
+    )
+
+    const statsRegion = screen.getByRole('region', {
+      name: /Season Statistics/i,
+    })
+
+    fireEvent.click(within(statsRegion).getByRole('tab', { name: /Bowling/i }))
+    let table = within(statsRegion).getByRole('table')
+
+    // Bowling Avg defaults to ascending (lower bowling average is better), with '-' at the bottom
+    const bowlingAvgHeader = within(table).getByRole('columnheader', {
+      name: /^Avg$/i,
+    })
+    fireEvent.click(within(bowlingAvgHeader).getByRole('button'))
+    expect(bowlingAvgHeader).toHaveAttribute('aria-sort', 'ascending')
+
+    let rows = within(table).getAllByRole('row').slice(1)
+    const bowlingAvgsAsc = rows.map(
+      (r) => within(r).getAllByRole('cell')[6].textContent,
+    )
+    expect(bowlingAvgsAsc.slice(0, 6)).toEqual([
+      '4.83',
+      '9',
+      '12.25',
+      '25',
+      '26',
+      '63',
+    ])
+    expect(bowlingAvgsAsc.slice(6)).toEqual(Array(9).fill('-'))
+
+    // Toggling Bowling Avg sorts descending, still keeping '-' at the bottom
+    fireEvent.click(within(bowlingAvgHeader).getByRole('button'))
+    expect(bowlingAvgHeader).toHaveAttribute('aria-sort', 'descending')
+    rows = within(table).getAllByRole('row').slice(1)
+    const bowlingAvgsDesc = rows.map(
+      (r) => within(r).getAllByRole('cell')[6].textContent,
+    )
+    expect(bowlingAvgsDesc.slice(0, 6)).toEqual([
+      '63',
+      '26',
+      '25',
+      '12.25',
+      '9',
+      '4.83',
+    ])
+    expect(bowlingAvgsDesc.slice(6)).toEqual(Array(9).fill('-'))
+
+    // Bowling Econ defaults to ascending, sinking '-' to the bottom in both directions
+    const econHeader = within(table).getByRole('columnheader', {
+      name: /^Econ$/i,
+    })
+    fireEvent.click(within(econHeader).getByRole('button'))
+    expect(econHeader).toHaveAttribute('aria-sort', 'ascending')
+    rows = within(table).getAllByRole('row').slice(1)
+    const econsAsc = rows.map(
+      (r) => within(r).getAllByRole('cell')[7].textContent,
+    )
+    expect(econsAsc[0]).toBe('2')
+    expect(econsAsc[9]).toBe('7.14')
+    expect(econsAsc.slice(10)).toEqual(Array(5).fill('-'))
+
+    fireEvent.click(within(econHeader).getByRole('button'))
+    expect(econHeader).toHaveAttribute('aria-sort', 'descending')
+    rows = within(table).getAllByRole('row').slice(1)
+    const econsDesc = rows.map(
+      (r) => within(r).getAllByRole('cell')[7].textContent,
+    )
+    expect(econsDesc[0]).toBe('7.14')
+    expect(econsDesc[9]).toBe('2')
+    expect(econsDesc.slice(10)).toEqual(Array(5).fill('-'))
+
+    // Bowling SR defaults to ascending, sinking '-' to the bottom in both directions
+    const bowlingSrHeader = within(table).getByRole('columnheader', {
+      name: /^SR$/i,
+    })
+    fireEvent.click(within(bowlingSrHeader).getByRole('button'))
+    expect(bowlingSrHeader).toHaveAttribute('aria-sort', 'ascending')
+    rows = within(table).getAllByRole('row').slice(1)
+    const bowlingSrsAsc = rows.map(
+      (r) => within(r).getAllByRole('cell')[8].textContent,
+    )
+    expect(bowlingSrsAsc.slice(0, 6)).toEqual([
+      '10',
+      '12',
+      '21',
+      '27',
+      '42',
+      '66',
+    ])
+    expect(bowlingSrsAsc.slice(6)).toEqual(Array(9).fill('-'))
+
+    fireEvent.click(within(bowlingSrHeader).getByRole('button'))
+    expect(bowlingSrHeader).toHaveAttribute('aria-sort', 'descending')
+    rows = within(table).getAllByRole('row').slice(1)
+    const bowlingSrsDesc = rows.map(
+      (r) => within(r).getAllByRole('cell')[8].textContent,
+    )
+    expect(bowlingSrsDesc.slice(0, 6)).toEqual([
+      '66',
+      '42',
+      '27',
+      '21',
+      '12',
+      '10',
+    ])
+    expect(bowlingSrsDesc.slice(6)).toEqual(Array(9).fill('-'))
+
+    // Fielding interactive sorting (Drops descending then ascending)
+    fireEvent.click(within(statsRegion).getByRole('tab', { name: /Fielding/i }))
+    table = within(statsRegion).getByRole('table')
+    const dropsHeader = within(table).getByRole('columnheader', {
+      name: /^Drops$/i,
+    })
+    fireEvent.click(within(dropsHeader).getByRole('button'))
+    expect(dropsHeader).toHaveAttribute('aria-sort', 'descending')
+    rows = within(table).getAllByRole('row').slice(1)
+    expect(within(rows[0]).getAllByRole('cell')[0].textContent).toBe(
+      'Jordan Newcomer',
+    )
+    fireEvent.click(within(dropsHeader).getByRole('button'))
+    expect(dropsHeader).toHaveAttribute('aria-sort', 'ascending')
+    rows = within(table).getAllByRole('row').slice(1)
+    expect(
+      within(rows[rows.length - 1]).getAllByRole('cell')[0].textContent,
+    ).toBe('Jordan Newcomer')
+  })
 })
