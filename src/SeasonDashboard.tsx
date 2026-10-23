@@ -4,6 +4,7 @@ import defaultCombinedStatsCsv from '../2026-10-23-combined-batting-bowling-fiel
 import {
   formatMatchDate,
   isByeMatch,
+  isSameTeam,
   parseMatchResults,
   resolveOpponentLabel,
   resolveResultSummary,
@@ -25,9 +26,21 @@ export interface SeasonMetadata {
   selectedLastMatchDate?: string
 }
 
+export interface LadderEntry {
+  position: number
+  team: string
+  played: number
+  won: number
+  lost: number
+  drawnOrNoResult: number
+  points: number
+  percentage: number
+}
+
 export interface SeasonConfig {
   team: TeamMetadata
   season: SeasonMetadata
+  ladder?: LadderEntry[]
 }
 
 export interface SeasonDashboardProps {
@@ -57,6 +70,9 @@ export function SeasonDashboard({
 }: SeasonDashboardProps) {
   const config = parseSeasonConfig(seasonJson)
   const { team, season } = config
+  const ladderRows = [...(config.ladder ?? [])].sort(
+    (a, b) => a.position - b.position,
+  )
   const matches = parseMatchResults(matchResultsCsv)
   const lastMatch = selectLastMatch(matches, season.selectedLastMatchDate)
   const nextUpcomingMatch = selectNextUpcomingMatch(matches)
@@ -97,10 +113,11 @@ export function SeasonDashboard({
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <section
-          aria-labelledby="last-match-result-heading"
-          className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg"
-        >
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+          <section
+            aria-labelledby="last-match-result-heading"
+            className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg"
+          >
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-4">
             <h2
               id="last-match-result-heading"
@@ -270,6 +287,107 @@ export function SeasonDashboard({
             </div>
           )}
         </section>
+
+        <section
+          aria-labelledby="ladder-heading"
+          className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-4">
+            <h2
+              id="ladder-heading"
+              className="text-lg font-bold tracking-tight text-white"
+            >
+              Ladder
+            </h2>
+          </div>
+
+          {ladderRows.length > 0 ? (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full border-collapse text-left text-xs sm:text-sm">
+                <thead>
+                  <tr className="border-b border-slate-800 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    <th scope="col" className="py-2.5 pr-2 text-center">
+                      Pos
+                    </th>
+                    <th scope="col" className="py-2.5 px-2">
+                      Team
+                    </th>
+                    <th scope="col" className="py-2.5 px-1.5 text-right">
+                      P
+                    </th>
+                    <th scope="col" className="py-2.5 px-1.5 text-right">
+                      W
+                    </th>
+                    <th scope="col" className="py-2.5 px-1.5 text-right">
+                      L
+                    </th>
+                    <th scope="col" className="py-2.5 px-1.5 text-right">
+                      D/NR
+                    </th>
+                    <th scope="col" className="py-2.5 px-2 text-right">
+                      Pts
+                    </th>
+                    <th scope="col" className="py-2.5 pl-2 text-right">
+                      %
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/70">
+                  {ladderRows.map((entry) => {
+                    const isOurTeam = isSameTeam(entry.team, team.name)
+                    return (
+                      <tr
+                        key={entry.position}
+                        aria-current={isOurTeam ? 'true' : undefined}
+                        className={
+                          isOurTeam
+                            ? 'bg-emerald-950/50 text-emerald-200 ring-1 ring-inset ring-emerald-500/40'
+                            : 'text-slate-200 hover:bg-slate-800/30'
+                        }
+                      >
+                        <td className="py-2.5 pl-2 pr-2 text-center font-mono text-xs text-slate-400">
+                          {entry.position}
+                        </td>
+                        <td
+                          className={`py-2.5 px-2 ${
+                            isOurTeam
+                              ? 'font-bold text-emerald-300'
+                              : 'font-medium text-white'
+                          }`}
+                        >
+                          {entry.team}
+                        </td>
+                        <td className="py-2.5 px-1.5 text-right font-mono">
+                          {entry.played}
+                        </td>
+                        <td className="py-2.5 px-1.5 text-right font-mono">
+                          {entry.won}
+                        </td>
+                        <td className="py-2.5 px-1.5 text-right font-mono">
+                          {entry.lost}
+                        </td>
+                        <td className="py-2.5 px-1.5 text-right font-mono">
+                          {entry.drawnOrNoResult}
+                        </td>
+                        <td className="py-2.5 px-2 text-right font-mono font-bold text-white">
+                          {entry.points}
+                        </td>
+                        <td className="py-2.5 pl-2 pr-2 text-right font-mono text-slate-300">
+                          {entry.percentage.toFixed(2)}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-slate-400">
+              No ladder entries available.
+            </p>
+          )}
+        </section>
+        </div>
       </main>
     </div>
   )

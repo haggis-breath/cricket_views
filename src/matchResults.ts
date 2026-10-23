@@ -179,17 +179,20 @@ export function selectNextUpcomingMatch(
   return upcoming[0]
 }
 
+export function isSameTeam(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase()
+}
+
 export function resolveOpponentLabel(
   match: ParsedMatchRow,
   teamName: string,
 ): string {
-  const normalizedTeam = teamName.trim().toLowerCase()
   const home = match.homeTeam.trim()
   const away = match.awayTeam.trim()
-  if (home.toLowerCase() === normalizedTeam && away) {
+  if (isSameTeam(home, teamName) && away) {
     return `vs ${away}`
   }
-  if (away.toLowerCase() === normalizedTeam && home) {
+  if (isSameTeam(away, teamName) && home) {
     return `at ${home}`
   }
   if (home && away) {

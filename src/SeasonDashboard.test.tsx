@@ -270,4 +270,100 @@ describe('SeasonDashboard', () => {
     expect(within(lastMatchRegion).getByText(/Next Fixture/i)).toBeInTheDocument()
     expect(within(lastMatchRegion).getByText('Round 3')).toBeInTheDocument()
   })
+
+  test('renders the competition Ladder with all columns (Pos, Team, P, W, L, D/NR, Pts, %) in rank order', () => {
+    render(
+      <SeasonDashboard
+        seasonJson={seasonData}
+        matchResultsCsv={matchResultsCsv}
+        combinedStatsCsv={combinedStatsCsv}
+      />,
+    )
+
+    const ladderRegion = screen.getByRole('region', { name: /Ladder/i })
+    const table = within(ladderRegion).getByRole('table')
+
+    // Column headers in order
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map((h) => h.textContent),
+    ).toEqual(['Pos', 'Team', 'P', 'W', 'L', 'D/NR', 'Pts', '%'])
+
+    // Rows in order (1 header row + 4 team rows)
+    const rows = within(table).getAllByRole('row')
+    expect(rows).toHaveLength(5)
+
+    const row1Cells = within(rows[1]).getAllByRole('cell')
+    expect(row1Cells.map((c) => c.textContent)).toEqual([
+      '1',
+      'MDCC Lions Senior Men Div 7',
+      '2',
+      '2',
+      '0',
+      '0',
+      '12',
+      '1.42',
+    ])
+
+    const row2Cells = within(rows[2]).getAllByRole('cell')
+    expect(row2Cells.map((c) => c.textContent)).toEqual([
+      '2',
+      'Tech College (Beresfield Memorial)',
+      '2',
+      '1',
+      '1',
+      '0',
+      '6',
+      '1.00',
+    ])
+
+    const row3Cells = within(rows[3]).getAllByRole('cell')
+    expect(row3Cells.map((c) => c.textContent)).toEqual([
+      '3',
+      'Adamstown Cricket Club (Scorpions)',
+      '2',
+      '1',
+      '1',
+      '0',
+      '6',
+      '0.96',
+    ])
+
+    const row4Cells = within(rows[4]).getAllByRole('cell')
+    expect(row4Cells.map((c) => c.textContent)).toEqual([
+      '4',
+      'Kotara',
+      '2',
+      '0',
+      '2',
+      '0',
+      '0',
+      '0.78',
+    ])
+  })
+
+  test('visually highlights our Team row in the Ladder and leaves opponent rows unhighlighted', () => {
+    render(
+      <SeasonDashboard
+        seasonJson={seasonData}
+        matchResultsCsv={matchResultsCsv}
+        combinedStatsCsv={combinedStatsCsv}
+      />,
+    )
+
+    const ladderRegion = screen.getByRole('region', { name: /Ladder/i })
+    const rows = within(ladderRegion).getAllByRole('row')
+
+    const opponentRow1 = rows[1]
+    const ourTeamRow = rows[2]
+    const opponentRow3 = rows[3]
+    const opponentRow4 = rows[4]
+
+    expect(ourTeamRow).toHaveAttribute('aria-current', 'true')
+
+    expect(opponentRow1).not.toHaveAttribute('aria-current')
+    expect(opponentRow3).not.toHaveAttribute('aria-current')
+    expect(opponentRow4).not.toHaveAttribute('aria-current')
+  })
 })

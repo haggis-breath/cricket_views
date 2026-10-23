@@ -9,5 +9,47 @@
   "season": {
     "title": "2026/27 Summer",
     "lastUpdated": "Round 2 (17 Oct 2026)"
-  }
+  },
+  "ladder": [
+    {
+      "position": 1,
+      "team": "MDCC Lions Senior Men Div 7",
+      "played": 2,
+      "won": 2,
+      "lost": 0,
+      "drawnOrNoResult": 0,
+      "points": 12,
+      "percentage": 1.42
+    },
+    {
+      "position": 2,
+      "team": "Tech College (Beresfield Memorial)",
+      "played": 2,
+      "won": 1,
+      "lost": 1,
+      "drawnOrNoResult": 0,
+      "points": 6,
+      "percentage": 1.00
+    },
+    {
+      "position": 3,
+      "team": "Adamstown Cricket Club (Scorpions)",
+      "played": 2,
+      "won": 1,
+      "lost": 1,
+      "drawnOrNoResult": 0,
+      "points": 6,
+      "percentage": 0.96
+    },
+    {
+      "position": 4,
+      "team": "Kotara",
+      "played": 2,
+      "won": 0,
+      "lost": 2,
+      "drawnOrNoResult": 0,
+      "points": 0,
+      "percentage": 0.78
+    }
+  ]
 }
