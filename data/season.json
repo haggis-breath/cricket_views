@@ -13,43 +13,83 @@
   "ladder": [
     {
       "position": 1,
-      "team": "MDCC Lions Senior Men Div 7",
+      "team": "Warners Bay",
       "played": 2,
       "won": 2,
       "lost": 0,
       "drawnOrNoResult": 0,
-      "points": 12,
-      "percentage": 1.42
+      "points": 6,
+      "percentage": 1.37
     },
     {
       "position": 2,
+      "team": "Kotara",
+      "played": 2,
+      "won": 1,
+      "lost": 1,
+      "drawnOrNoResult": 0,
+      "points": 4,
+      "percentage": 1.11
+    },
+    {
+      "position": 3,
+      "team": "MDCC Lions Senior Men Div 7",
+      "played": 2,
+      "won": 1,
+      "lost": 1,
+      "drawnOrNoResult": 0,
+      "points": 4,
+      "percentage": 0.39
+    },
+    {
+      "position": 4,
+      "team": "Nelson Bay",
+      "played": 2,
+      "won": 1,
+      "lost": 1,
+      "drawnOrNoResult": 0,
+      "points": 4,
+      "percentage": -0.01
+    },
+    {
+      "position": 5,
       "team": "Tech College (Beresfield Memorial)",
       "played": 2,
       "won": 1,
       "lost": 1,
       "drawnOrNoResult": 0,
-      "points": 6,
-      "percentage": 1.00
+      "points": 4,
+      "percentage": -0.75
     },
     {
-      "position": 3,
+      "position": 6,
       "team": "Adamstown Cricket Club (Scorpions)",
       "played": 2,
       "won": 1,
       "lost": 1,
       "drawnOrNoResult": 0,
-      "points": 6,
-      "percentage": 0.96
+      "points": 4,
+      "percentage": -0.40
     },
     {
-      "position": 4,
-      "team": "Kotara",
-      "played": 2,
+      "position": 7,
+      "team": "Adamstown Cricket Club (Blue)",
+      "played": 1,
       "won": 0,
-      "lost": 2,
+      "lost": 1,
       "drawnOrNoResult": 0,
-      "points": 0,
-      "percentage": 0.78
+      "points": 1,
+      "percentage": -2.76
+    },
+    {
+      "position": 8,
+      "team": "Beresfield Memorial",
+      "played": 1,
+      "won": 0,
+      "lost": 1,
+      "drawnOrNoResult": 0,
+      "points": 1,
+      "percentage": -1.72
     }
   ],
   "manualTallies": {

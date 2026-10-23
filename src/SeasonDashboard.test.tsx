@@ -290,56 +290,56 @@ describe('SeasonDashboard', () => {
         .map((h) => h.textContent),
     ).toEqual(['Pos', 'Team', 'P', 'W', 'L', 'D/NR', 'Pts', '%'])
 
-    // Rows in order (1 header row + 4 team rows)
+    // Rows in order (1 header row + 8 team rows)
     const rows = within(table).getAllByRole('row')
-    expect(rows).toHaveLength(5)
+    expect(rows).toHaveLength(9)
 
     const row1Cells = within(rows[1]).getAllByRole('cell')
     expect(row1Cells.map((c) => c.textContent)).toEqual([
       '1',
-      'MDCC Lions Senior Men Div 7',
+      'Warners Bay',
       '2',
       '2',
       '0',
       '0',
-      '12',
-      '1.42',
+      '6',
+      '1.37',
     ])
 
     const row2Cells = within(rows[2]).getAllByRole('cell')
     expect(row2Cells.map((c) => c.textContent)).toEqual([
       '2',
+      'Kotara',
+      '2',
+      '1',
+      '1',
+      '0',
+      '4',
+      '1.11',
+    ])
+
+    const row5Cells = within(rows[5]).getAllByRole('cell')
+    expect(row5Cells.map((c) => c.textContent)).toEqual([
+      '5',
       'Tech College (Beresfield Memorial)',
       '2',
       '1',
       '1',
       '0',
-      '6',
-      '1.00',
-    ])
-
-    const row3Cells = within(rows[3]).getAllByRole('cell')
-    expect(row3Cells.map((c) => c.textContent)).toEqual([
-      '3',
-      'Adamstown Cricket Club (Scorpions)',
-      '2',
-      '1',
-      '1',
-      '0',
-      '6',
-      '0.96',
-    ])
-
-    const row4Cells = within(rows[4]).getAllByRole('cell')
-    expect(row4Cells.map((c) => c.textContent)).toEqual([
       '4',
-      'Kotara',
-      '2',
+      '-0.75',
+    ])
+
+    const row8Cells = within(rows[8]).getAllByRole('cell')
+    expect(row8Cells.map((c) => c.textContent)).toEqual([
+      '8',
+      'Beresfield Memorial',
+      '1',
       '0',
-      '2',
+      '1',
       '0',
-      '0',
-      '0.78',
+      '1',
+      '-1.72',
     ])
   })
 
@@ -356,15 +356,15 @@ describe('SeasonDashboard', () => {
     const rows = within(ladderRegion).getAllByRole('row')
 
     const opponentRow1 = rows[1]
-    const ourTeamRow = rows[2]
-    const opponentRow3 = rows[3]
-    const opponentRow4 = rows[4]
+    const ourTeamRow = rows[5] // Position 5
+    const opponentRow2 = rows[2]
+    const opponentRow8 = rows[8]
 
     expect(ourTeamRow).toHaveAttribute('aria-current', 'true')
 
     expect(opponentRow1).not.toHaveAttribute('aria-current')
-    expect(opponentRow3).not.toHaveAttribute('aria-current')
-    expect(opponentRow4).not.toHaveAttribute('aria-current')
+    expect(opponentRow2).not.toHaveAttribute('aria-current')
+    expect(opponentRow8).not.toHaveAttribute('aria-current')
   })
 
   test('renders Season Statistics Batting tab by default with positional CSV columns, normalized player names, not-out HS asterisks, dash for empty averages, sticky Player column, and Runs descending order', () => {
