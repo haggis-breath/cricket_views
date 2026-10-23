@@ -1658,3 +1658,148 @@ describe('SeasonDashboard', () => {
     expect(wicketRunnersUp[0].textContent).toMatch(/#2.*Bowler Delta.*4/i)
   })
 })
+
+describe('SeasonDashboard mobile disclosures', () => {
+  // On mobile (below the `sm` breakpoint) secondary detail is collapsed behind a
+  // toggle button. The button itself is hidden at `sm` and above, where the
+  // detail is always shown via `sm:*` display utilities.
+  const renderDashboard = () =>
+    render(
+      <SeasonDashboard
+        seasonJson={seasonData}
+        matchResultsCsv={matchResultsCsv}
+        combinedStatsCsv={combinedStatsCsv}
+      />,
+    )
+
+  const controlledBy = (button: HTMLElement) => {
+    const id = button.getAttribute('aria-controls')
+    expect(id).toBeTruthy()
+    const el = document.getElementById(id!)
+    expect(el).not.toBeNull()
+    return el!
+  }
+
+  test('Last Match Result shows the result summary on mobile and collapses scores and innings breakdown behind a toggle', () => {
+    renderDashboard()
+
+    const region = screen.getByRole('region', { name: /Last Match Result/i })
+    const toggle = within(region).getByRole('button', {
+      name: /Show full result/i,
+    })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(toggle.className).toMatch(/\bsm:hidden\b/)
+
+    const details = controlledBy(toggle)
+    expect(details.classList).toContain('hidden')
+    expect(details.className).toMatch(/\bsm:block\b/)
+
+    // Summary stays visible outside the collapsible detail
+    const summary = within(region).getByText(
+      /MDCC Lions Senior Men Div 7 won by 4 wickets/i,
+    )
+    expect(details).not.toContainElement(summary)
+
+    // Scores and innings breakdown are inside the collapsible detail
+    expect(within(details).getByText(/Innings Breakdown/i)).toBeInTheDocument()
+    expect(within(details).getByText(/J Thurlow - 33/i)).toBeInTheDocument()
+
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(toggle).toHaveAccessibleName(/Hide full result/i)
+    expect(details.classList).not.toContain('hidden')
+  })
+
+  test('Ladder shows only our Team and adjacent rows on mobile until expanded', () => {
+    renderDashboard()
+
+    const region = screen.getByRole('region', { name: /Ladder/i })
+    const toggle = within(region).getByRole('button', {
+      name: /Show full ladder/i,
+    })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(toggle.className).toMatch(/\bsm:hidden\b/)
+    expect(controlledBy(toggle)).toBe(within(region).getByRole('table'))
+
+    const rows = within(region).getAllByRole('row').slice(1)
+    const hiddenPositions = rows
+      .filter((r) => r.classList.contains('hidden'))
+      .map((r) => within(r).getAllByRole('cell')[0].textContent)
+    // Our Team is 5th, so 4th–6th stay visible
+    expect(hiddenPositions).toEqual(['1', '2', '3', '7', '8'])
+    rows
+      .filter((r) => r.classList.contains('hidden'))
+      .forEach((r) => expect(r.className).toMatch(/\bsm:table-row\b/))
+
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(toggle).toHaveAccessibleName(/Show fewer/i)
+    expect(rows.filter((r) => r.classList.contains('hidden'))).toHaveLength(0)
+  })
+
+  test('Leaderboard cards show the #1 leader on mobile and collapse runners-up behind a per-card toggle', () => {
+    renderDashboard()
+
+    const region = screen.getByRole('region', { name: /Leaderboard/i })
+    const runScorerCard = within(region).getByRole('article', {
+      name: /Leading Run Scorer/i,
+    })
+    const wicketTakerCard = within(region).getByRole('article', {
+      name: /Leading Wicket Taker/i,
+    })
+
+    const runToggle = within(runScorerCard).getByRole('button', {
+      name: /Show runners-up/i,
+    })
+    const wicketToggle = within(wicketTakerCard).getByRole('button', {
+      name: /Show runners-up/i,
+    })
+    expect(runToggle).toHaveAttribute('aria-expanded', 'false')
+    expect(runToggle.className).toMatch(/\bsm:hidden\b/)
+
+    const runList = controlledBy(runToggle)
+    const wicketList = controlledBy(wicketToggle)
+    expect(runList).toBe(within(runScorerCard).getByRole('list'))
+    expect(runList.classList).toContain('hidden')
+    expect(runList.className).toMatch(/\bsm:block\b/)
+
+    // Leader stays visible outside the collapsible list
+    expect(runList).not.toContainElement(
+      within(runScorerCard).getByText('#1'),
+    )
+
+    fireEvent.click(runToggle)
+    expect(runToggle).toHaveAttribute('aria-expanded', 'true')
+    expect(runToggle).toHaveAccessibleName(/Hide runners-up/i)
+    expect(runList.classList).not.toContain('hidden')
+
+    // Each card expands independently
+    expect(wicketToggle).toHaveAttribute('aria-expanded', 'false')
+    expect(wicketList.classList).toContain('hidden')
+  })
+
+  test('Season Statistics collapses the tabs and table behind a toggle on mobile', () => {
+    renderDashboard()
+
+    const region = screen.getByRole('region', { name: /Season Statistics/i })
+    const toggle = within(region).getByRole('button', {
+      name: /Show statistics/i,
+    })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(toggle.className).toMatch(/\bsm:hidden\b/)
+
+    const body = controlledBy(toggle)
+    expect(body.classList).toContain('hidden')
+    expect(body.className).toMatch(/\bsm:block\b/)
+    expect(within(body).getByRole('table')).toBeInTheDocument()
+    const tablist = within(region).getByRole('tablist')
+    expect(tablist.classList).toContain('hidden')
+    expect(tablist.className).toMatch(/\bsm:inline-flex\b/)
+
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(toggle).toHaveAccessibleName(/Hide statistics/i)
+    expect(body.classList).not.toContain('hidden')
+    expect(tablist.classList).not.toContain('hidden')
+  })
+})

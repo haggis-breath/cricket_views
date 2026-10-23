@@ -74,6 +74,65 @@ function parseSeasonConfig(input: SeasonConfig | string): SeasonConfig {
   return input
 }
 
+interface MobileToggleProps {
+  expanded: boolean
+  onToggle: () => void
+  controls: string
+  showLabel: string
+  hideLabel: string
+  className?: string
+}
+
+/**
+ * Disclosure button shown only below the `sm` breakpoint. The content it
+ * controls should use `hidden sm:<display>` while collapsed so it is always
+ * visible on larger screens regardless of this toggle's state.
+ */
+function MobileToggle({
+  expanded,
+  onToggle,
+  controls,
+  showLabel,
+  hideLabel,
+  className = '',
+}: MobileToggleProps) {
+  return (
+    <button
+      type="button"
+      aria-expanded={expanded}
+      aria-controls={controls}
+      onClick={onToggle}
+      className={`inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-700/60 sm:hidden ${className}`}
+    >
+      <span>{expanded ? hideLabel : showLabel}</span>
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 10 10"
+        className={`h-2.5 w-2.5 fill-current transition-transform ${
+          expanded ? 'rotate-180' : ''
+        }`}
+      >
+        <path d="M1 3h8L5 8z" />
+      </svg>
+    </button>
+  )
+}
+
+// Literal class strings so Tailwind's source scanner picks them up.
+const MOBILE_COLLAPSED_CLASSES = {
+  block: 'hidden sm:block',
+  'table-row': 'hidden sm:table-row',
+  'inline-flex': 'hidden sm:inline-flex',
+} as const
+
+/** Classes for content collapsed on mobile but always shown at `sm`+. */
+function mobileCollapse(
+  expanded: boolean,
+  display: keyof typeof MOBILE_COLLAPSED_CLASSES = 'block',
+) {
+  return expanded ? '' : MOBILE_COLLAPSED_CLASSES[display]
+}
+
 export function SeasonDashboard({
   seasonJson = defaultSeasonData,
   matchResultsCsv = defaultMatchResultsCsv,
@@ -98,10 +157,23 @@ export function SeasonDashboard({
     },
   })
   const config = parseSeasonConfig(seasonJson)
+  const [lastMatchExpanded, setLastMatchExpanded] = useState(false)
+  const [ladderExpanded, setLadderExpanded] = useState(false)
+  const [statsExpanded, setStatsExpanded] = useState(false)
+  const [expandedLeaderboardCards, setExpandedLeaderboardCards] = useState<
+    Record<string, boolean>
+  >({})
   const { team, season } = config
   const ladderRows = [...(config.ladder ?? [])].sort(
     (a, b) => a.position - b.position,
   )
+  const ourLadderIndex = ladderRows.findIndex((entry) =>
+    isSameTeam(entry.team, team.name),
+  )
+  // On mobile the collapsed ladder shows our Team plus the rows either side.
+  // If our Team is not on the ladder, fall back to the top three.
+  const isLadderRowInCollapsedView = (index: number) =>
+    ourLadderIndex === -1 ? index < 3 : Math.abs(index - ourLadderIndex) <= 1
   const matches = parseMatchResults(matchResultsCsv)
   const lastMatch = selectLastMatch(matches, season.selectedLastMatchDate)
   const nextUpcomingMatch = selectNextUpcomingMatch(matches)
@@ -211,110 +283,126 @@ export function SeasonDashboard({
 
           {lastMatch ? (
             <div className="mt-5 space-y-5">
-              {!isByeMatch(lastMatch) && (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {[
-                    {
-                      label: 'Home',
-                      teamName: lastMatch.homeTeam,
-                      score: lastMatch.homeTeamScore,
-                    },
-                    {
-                      label: 'Away',
-                      teamName: lastMatch.awayTeam,
-                      score: lastMatch.awayTeamScore,
-                    },
-                  ].map((side) => (
-                    <div
-                      key={side.label}
-                      className="rounded-xl border border-slate-800 bg-slate-950/60 p-4"
-                    >
-                      <div className="text-xs font-medium uppercase tracking-wider text-slate-400">
-                        {side.label}
-                      </div>
-                      <div className="mt-1 flex items-baseline justify-between gap-2">
-                        <span className="font-semibold text-white">
-                          {side.teamName}
-                        </span>
-                        <span className="font-mono text-lg font-bold text-emerald-400">
-                          {side.score || '—'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-emerald-950/30 px-4 py-3 text-sm border border-emerald-900/50">
+                  <span className="font-semibold text-emerald-300">
+                    {resolveResultSummary(lastMatch, team.name)}
+                  </span>
+                  {lastMatch.venue &&
+                    lastMatch.venue.toLowerCase() !== 'no venue' && (
+                      <span className="text-xs text-slate-400">
+                        Venue: {lastMatch.venue}
+                      </span>
+                    )}
                 </div>
-              )}
-
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-emerald-950/30 px-4 py-3 text-sm border border-emerald-900/50">
-                <span className="font-semibold text-emerald-300">
-                  {resolveResultSummary(lastMatch, team.name)}
-                </span>
-                {lastMatch.venue &&
-                  lastMatch.venue.toLowerCase() !== 'no venue' && (
-                    <span className="text-xs text-slate-400">
-                      Venue: {lastMatch.venue}
-                    </span>
-                  )}
+                {(!isByeMatch(lastMatch) || lastMatch.innings.length > 0) && (
+                  <MobileToggle
+                    expanded={lastMatchExpanded}
+                    onToggle={() => setLastMatchExpanded((v) => !v)}
+                    controls="last-match-details"
+                    showLabel="Show full result"
+                    hideLabel="Hide full result"
+                  />
+                )}
               </div>
 
-              {lastMatch.innings.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                    Innings Breakdown
-                  </h3>
+              <div
+                id="last-match-details"
+                className={`space-y-5 ${mobileCollapse(lastMatchExpanded)}`}
+              >
+                {!isByeMatch(lastMatch) && (
                   <div className="grid gap-3 sm:grid-cols-2">
-                    {lastMatch.innings.map((inn) => (
+                    {[
+                      {
+                        label: 'Home',
+                        teamName: lastMatch.homeTeam,
+                        score: lastMatch.homeTeamScore,
+                      },
+                      {
+                        label: 'Away',
+                        teamName: lastMatch.awayTeam,
+                        score: lastMatch.awayTeamScore,
+                      },
+                    ].map((side) => (
                       <div
-                        key={inn.inningsNumber}
-                        className="rounded-xl border border-slate-800/90 bg-slate-950/40 p-3.5 text-xs"
+                        key={side.label}
+                        className="rounded-xl border border-slate-800 bg-slate-950/60 p-4"
                       >
-                        <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-400/90">
-                          {ORDINAL_LABELS[inn.inningsNumber] ??
-                            `Innings ${inn.inningsNumber}`}
+                        <div className="text-xs font-medium uppercase tracking-wider text-slate-400">
+                          {side.label}
                         </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-semibold text-slate-200">
-                            {inn.team}
+                        <div className="mt-1 flex items-baseline justify-between gap-2">
+                          <span className="font-semibold text-white">
+                            {side.teamName}
                           </span>
-                          <span className="font-mono font-bold text-slate-100">
-                            {inn.score}
+                          <span className="font-mono text-lg font-bold text-emerald-400">
+                            {side.score || '—'}
                           </span>
                         </div>
-                        {inn.closureType && (
-                          <div className="mt-0.5 text-[11px] text-slate-400">
-                            {inn.closureType}
-                          </div>
-                        )}
-                        {(inn.battingPerformances.length > 0 ||
-                          inn.bowlingPerformances.length > 0) && (
-                          <div className="mt-2.5 space-y-1.5 border-t border-slate-800/80 pt-2">
-                            {inn.battingPerformances.length > 0 && (
-                              <div>
-                                <span className="font-medium text-slate-400">
-                                  Batting:{' '}
-                                </span>
-                                <span className="text-slate-200">
-                                  {inn.battingPerformances.join(', ')}
-                                </span>
-                              </div>
-                            )}
-                            {inn.bowlingPerformances.length > 0 && (
-                              <div>
-                                <span className="font-medium text-slate-400">
-                                  Bowling:{' '}
-                                </span>
-                                <span className="text-slate-200">
-                                  {inn.bowlingPerformances.join(', ')}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
+
+                {lastMatch.innings.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      Innings Breakdown
+                    </h3>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {lastMatch.innings.map((inn) => (
+                        <div
+                          key={inn.inningsNumber}
+                          className="rounded-xl border border-slate-800/90 bg-slate-950/40 p-3.5 text-xs"
+                        >
+                          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-400/90">
+                            {ORDINAL_LABELS[inn.inningsNumber] ??
+                              `Innings ${inn.inningsNumber}`}
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-semibold text-slate-200">
+                              {inn.team}
+                            </span>
+                            <span className="font-mono font-bold text-slate-100">
+                              {inn.score}
+                            </span>
+                          </div>
+                          {inn.closureType && (
+                            <div className="mt-0.5 text-[11px] text-slate-400">
+                              {inn.closureType}
+                            </div>
+                          )}
+                          {(inn.battingPerformances.length > 0 ||
+                            inn.bowlingPerformances.length > 0) && (
+                            <div className="mt-2.5 space-y-1.5 border-t border-slate-800/80 pt-2">
+                              {inn.battingPerformances.length > 0 && (
+                                <div>
+                                  <span className="font-medium text-slate-400">
+                                    Batting:{' '}
+                                  </span>
+                                  <span className="text-slate-200">
+                                    {inn.battingPerformances.join(', ')}
+                                  </span>
+                                </div>
+                              )}
+                              {inn.bowlingPerformances.length > 0 && (
+                                <div>
+                                  <span className="font-medium text-slate-400">
+                                    Bowling:{' '}
+                                  </span>
+                                  <span className="text-slate-200">
+                                    {inn.bowlingPerformances.join(', ')}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <p className="mt-4 text-sm text-slate-400">
@@ -363,11 +451,23 @@ export function SeasonDashboard({
             >
               Ladder
             </h2>
+            {ladderRows.some((_, i) => !isLadderRowInCollapsedView(i)) && (
+              <MobileToggle
+                expanded={ladderExpanded}
+                onToggle={() => setLadderExpanded((v) => !v)}
+                controls="ladder-table"
+                showLabel="Show full ladder"
+                hideLabel="Show fewer"
+              />
+            )}
           </div>
 
           {ladderRows.length > 0 ? (
             <div className="mt-4 overflow-x-auto">
-              <table className="w-full border-collapse text-left text-xs sm:text-sm">
+              <table
+                id="ladder-table"
+                className="w-full border-collapse text-left text-xs sm:text-sm"
+              >
                 <thead>
                   <tr className="border-b border-slate-800 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                     <th scope="col" className="py-2.5 pr-2 text-center">
@@ -397,17 +497,20 @@ export function SeasonDashboard({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/70">
-                  {ladderRows.map((entry) => {
+                  {ladderRows.map((entry, index) => {
                     const isOurTeam = isSameTeam(entry.team, team.name)
+                    const collapseClasses = isLadderRowInCollapsedView(index)
+                      ? ''
+                      : mobileCollapse(ladderExpanded, 'table-row')
                     return (
                       <tr
                         key={entry.position}
                         aria-current={isOurTeam ? 'true' : undefined}
-                        className={
+                        className={`${
                           isOurTeam
                             ? 'bg-emerald-950/50 text-emerald-200 ring-1 ring-inset ring-emerald-500/40'
                             : 'text-slate-200 hover:bg-slate-800/30'
-                        }
+                        } ${collapseClasses}`}
                       >
                         <td className="py-2.5 pl-2 pr-2 text-center font-mono text-xs text-slate-400">
                           {entry.position}
@@ -469,6 +572,7 @@ export function SeasonDashboard({
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {leaderboardCards.map((card) => {
               const headingId = `leaderboard-card-${card.id}`
+              const runnersUpId = `leaderboard-runners-up-${card.id}`
               return (
                 <article
                   key={card.id}
@@ -521,26 +625,46 @@ export function SeasonDashboard({
                     )}
 
                     {card.runnersUp.length > 0 && (
-                      <ol className="mt-3 divide-y divide-slate-800/60 text-xs">
-                        {card.runnersUp.map((entry) => (
-                          <li
-                            key={entry.playerKey}
-                            className="flex items-center justify-between gap-2 py-1.5"
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="font-mono text-[11px] font-semibold text-slate-400">
-                                #{entry.rank}
+                      <>
+                        <MobileToggle
+                          expanded={!!expandedLeaderboardCards[card.id]}
+                          onToggle={() =>
+                            setExpandedLeaderboardCards((prev) => ({
+                              ...prev,
+                              [card.id]: !prev[card.id],
+                            }))
+                          }
+                          controls={runnersUpId}
+                          showLabel="Show runners-up"
+                          hideLabel="Hide runners-up"
+                          className="mt-3"
+                        />
+                        <ol
+                          id={runnersUpId}
+                          className={`mt-3 divide-y divide-slate-800/60 text-xs ${mobileCollapse(
+                            !!expandedLeaderboardCards[card.id],
+                          )}`}
+                        >
+                          {card.runnersUp.map((entry) => (
+                            <li
+                              key={entry.playerKey}
+                              className="flex items-center justify-between gap-2 py-1.5"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="font-mono text-[11px] font-semibold text-slate-400">
+                                  #{entry.rank}
+                                </span>
+                                <span className="truncate font-medium text-slate-200">
+                                  {entry.playerName}
+                                </span>
+                              </div>
+                              <span className="font-mono font-bold text-slate-100">
+                                {entry.primaryValue}
                               </span>
-                              <span className="truncate font-medium text-slate-200">
-                                {entry.playerName}
-                              </span>
-                            </div>
-                            <span className="font-mono font-bold text-slate-100">
-                              {entry.primaryValue}
-                            </span>
-                          </li>
-                        ))}
-                      </ol>
+                            </li>
+                          ))}
+                        </ol>
+                      </>
                     )}
                   </div>
                 </article>
@@ -554,16 +678,27 @@ export function SeasonDashboard({
           className="mt-8 rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg"
         >
           <div className="flex flex-col gap-4 border-b border-slate-800 pb-4 sm:flex-row sm:items-center sm:justify-between">
-            <h2
-              id="season-statistics-heading"
-              className="text-lg font-bold tracking-tight text-white"
-            >
-              Season Statistics
-            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2
+                id="season-statistics-heading"
+                className="text-lg font-bold tracking-tight text-white"
+              >
+                Season Statistics
+              </h2>
+              <MobileToggle
+                expanded={statsExpanded}
+                onToggle={() => setStatsExpanded((v) => !v)}
+                controls="season-statistics-body"
+                showLabel="Show statistics"
+                hideLabel="Hide statistics"
+              />
+            </div>
             <div
               role="tablist"
               aria-label="Season Statistics disciplines"
-              className="inline-flex rounded-xl border border-slate-800 bg-slate-950/80 p-1"
+              className={`rounded-xl border border-slate-800 bg-slate-950/80 p-1 ${
+                mobileCollapse(statsExpanded, 'inline-flex') || 'inline-flex'
+              }`}
             >
               {STATS_DISCIPLINE_ORDER.map((tab) => {
                 const isSelected = activeStatsTab === tab.id
@@ -587,7 +722,10 @@ export function SeasonDashboard({
             </div>
           </div>
 
-          <div className="mt-4 overflow-x-auto">
+          <div
+            id="season-statistics-body"
+            className={`mt-4 overflow-x-auto ${mobileCollapse(statsExpanded)}`}
+          >
             <table className="w-full border-collapse text-left text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-slate-800 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
