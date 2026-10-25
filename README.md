@@ -12,12 +12,19 @@ After each round, update the dashboard in three steps and push to `main`:
 
 ### 1. Drop the PlayHQ CSV exports into the repository root
 
-Export the two latest CSV files for the `Season` from the PlayHQ admin portal:
+Export the two latest CSV files for the `Season` from the PlayHQ admin portal and save them in the repository root with date-stamped filenames:
 
-1. **Match Results CSV** (powers the `Last Match Result` and next `UPCOMING` match callout)
-   - Replace `2026-10-23-match-results.csv` in the repository root with the newly exported match results CSV (or if you save it under a new date-stamped filename such as `YYYY-MM-DD-match-results.csv`, update the `defaultMatchResultsCsv` import at the top of `src/SeasonDashboard.tsx`).
-2. **Combined Batting, Bowling & Fielding CSV** (powers `Season Statistics` and PlayHQ `Leaderboard` metrics)
-   - Replace `2026-10-23-combined-batting-bowling-fielding.csv` in the repository root with the newly exported combined player stats CSV (or if using a new filename, update the `defaultCombinedStatsCsv` import in `src/SeasonDashboard.tsx`).
+1. **Match Results CSV** as `YYYY-MM-DD-match-results.csv` (powers the `Last Match Result` and next `UPCOMING` match callout)
+2. **Combined Batting, Bowling & Fielding CSV** as `YYYY-MM-DD-combined-batting-bowling-fielding.csv` (powers `Season Statistics` and PlayHQ `Leaderboard` metrics)
+
+Then point the `defaultMatchResultsCsv` and `defaultCombinedStatsCsv` imports at the top of `src/SeasonDashboard.tsx` at the new filenames:
+
+```ts
+import defaultMatchResultsCsv from '../YYYY-MM-DD-match-results.csv?raw'
+import defaultCombinedStatsCsv from '../YYYY-MM-DD-combined-batting-bowling-fielding.csv?raw'
+```
+
+> **Note:** Keep the `2026-10-23-*.csv` files. They are fixed test fixtures used by `src/SeasonDashboard.test.tsx`, not live data. Older weekly exports can be deleted once replaced.
 
 ### 2. Update `data/season.json`
 
@@ -27,17 +34,18 @@ Open `data/season.json` and update:
   - Update `"lastUpdated"` to the latest completed round and date (e.g., `"Round 3 (24 Oct 2026)"`).
   - By default, the dashboard automatically selects the most recent completed (or non-upcoming) match from the Match Results CSV as the `Last Match Result`. If you ever need to pin a specific match date, set the optional `"selectedLastMatchDate"` field (e.g., `"2026-10-17"`).
 - **Competition `Ladder` (`ladder`)**:
-  - Update each team's `"position"`, `"played"`, `"won"`, `"lost"`, `"drawnOrNoResult"`, `"points"`, and `"percentage"` from the current PlayHQ `Ladder`.
+  - Update each team's `"position"`, `"played"`, `"won"`, `"lost"`, `"drawnOrNoResult"`, `"points"`, and `"percentage"` (NRR) from the current PlayHQ `Ladder`. Rows are displayed in `"position"` order, so copy positions exactly as PlayHQ shows them.
 - **`Manual Tallies` (`manualTallies`)**:
   - Update `"droppedCatches"` per player (merges into the Fielding `Season Statistics` table as `Drops` and powers the **Butterfingers** `Leaderboard` card).
+  - These are **cumulative Season totals**: add each round's drops onto the existing numbers rather than replacing them.
   - Player names can be written in either `"Last, First"` or `"First Last"` format (case-insensitive) and will automatically match their PlayHQ profile.
   - To track additional custom `Manual Tallies` on the `Leaderboard`, add entries under `"customCategories"`:
     ```json
     "manualTallies": {
       "droppedCatches": {
+        "Craig Hearnden": 4,
         "Moffat, Andrew": 2,
-        "Alistair Osborne": 1,
-        "Ewan Bauer": 1
+        "Alistair Osborne": 1
       },
       "customCategories": [
         {
@@ -62,6 +70,8 @@ git push origin main
 ```
 
 Pushing to `main` triggers the `.github/workflows/deploy.yml` GitHub Actions workflow, which runs `npm run typecheck`, `npm test`, and `npm run build` before automatically publishing the static `./dist` artifact to GitHub Pages.
+
+> **Note:** The repository's Pages source must be set to **GitHub Actions** (Settings → Pages → Build and deployment → Source). If it is set to "Deploy from a branch", GitHub publishes the raw source instead of `./dist` and the site renders as a blank page.
 
 ---
 
