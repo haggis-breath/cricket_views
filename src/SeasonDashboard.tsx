@@ -23,11 +23,12 @@ import {
 } from './seasonStats'
 
 export interface TeamMetadata {
+  /** Full PlayHQ team name, used to match the Team in results and the Ladder. */
   name: string
-  club: string
+  /** Shorter name shown in the header; falls back to `name`. */
+  displayName?: string
   grade: string
   association: string
-  playhqUrl: string
 }
 
 export interface SeasonMetadata {
@@ -227,22 +228,13 @@ export function SeasonDashboard({
                 <span>{season.title}</span>
               </div>
               <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
-                {team.name}
+                {team.displayName ?? team.name}
               </h1>
-              <p className="mt-1 text-sm text-slate-400">{team.club}</p>
             </div>
             <div className="flex flex-col items-start gap-2 sm:items-end">
               <span className="inline-flex items-center rounded-full border border-slate-700 bg-slate-800/80 px-3 py-1 text-xs font-medium text-slate-300">
                 Last updated: {season.lastUpdated}
               </span>
-              <a
-                href={team.playhqUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500"
-              >
-                View on PlayHQ
-              </a>
             </div>
           </div>
         </div>
@@ -284,16 +276,10 @@ export function SeasonDashboard({
           {lastMatch ? (
             <div className="mt-5 space-y-5">
               <div className="space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-emerald-950/30 px-4 py-3 text-sm border border-emerald-900/50">
+                <div className="rounded-xl bg-emerald-950/30 px-4 py-3 text-sm border border-emerald-900/50">
                   <span className="font-semibold text-emerald-300">
                     {resolveResultSummary(lastMatch, team.name)}
                   </span>
-                  {lastMatch.venue &&
-                    lastMatch.venue.toLowerCase() !== 'no venue' && (
-                      <span className="text-xs text-slate-400">
-                        Venue: {lastMatch.venue}
-                      </span>
-                    )}
                 </div>
                 {(!isByeMatch(lastMatch) || lastMatch.innings.length > 0) && (
                   <MobileToggle

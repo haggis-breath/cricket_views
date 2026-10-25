@@ -1,10 +1,9 @@
 {
   "team": {
     "name": "Tech College (Beresfield Memorial)",
-    "club": "Beresfield Memorial Cricket Club",
+    "displayName": "Tech College",
     "grade": "Division 7",
-    "association": "Newcastle District Cricket Association Inc.",
-    "playhqUrl": "https://www.playhq.com/cricket-australia/org/newcastle-district-cricket-association-inc"
+    "association": "Newcastle District Cricket Association Inc."
   },
   "season": {
     "title": "2026/27 Summer",

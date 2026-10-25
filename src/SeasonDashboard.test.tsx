@@ -6,7 +6,7 @@ import matchResultsCsv from '../2026-10-23-match-results.csv?raw'
 import combinedStatsCsv from '../2026-10-23-combined-batting-bowling-fielding.csv?raw'
 
 describe('SeasonDashboard', () => {
-  test('renders Team header with team name, club, competition grade, association, Season title, last-updated indicator, and PlayHQ link', () => {
+  test('renders Team header with short display name, competition grade, association, Season title, and last-updated indicator, without club name or PlayHQ link', () => {
     render(
       <SeasonDashboard
         seasonJson={seasonData}
@@ -15,10 +15,13 @@ describe('SeasonDashboard', () => {
       />,
     )
 
+    const banner = screen.getByRole('banner')
     expect(
-      screen.getByRole('heading', { name: /Tech College \(Beresfield Memorial\)/i }),
-    ).toBeInTheDocument()
-    expect(screen.getByText(/Beresfield Memorial Cricket Club/i)).toBeInTheDocument()
+      within(banner).getByRole('heading', { level: 1 }),
+    ).toHaveTextContent(/^Tech College$/)
+    expect(
+      within(banner).queryByText(/Beresfield Memorial/i),
+    ).not.toBeInTheDocument()
     expect(screen.getByText(/Division 7/i)).toBeInTheDocument()
     expect(
       screen.getByText(/Newcastle District Cricket Association Inc\./i),
@@ -26,15 +29,25 @@ describe('SeasonDashboard', () => {
     expect(screen.getByText(/2026\/27 Summer/i)).toBeInTheDocument()
     expect(screen.getByText(/Round 2 \(17 Oct 2026\)/i)).toBeInTheDocument()
 
-    const playhqLinks = screen.getAllByRole('link', { name: /PlayHQ/i })
-    expect(playhqLinks.length).toBeGreaterThanOrEqual(1)
-    expect(playhqLinks[0]).toHaveAttribute(
-      'href',
-      'https://www.playhq.com/cricket-australia/org/newcastle-district-cricket-association-inc',
-    )
+    expect(screen.queryByRole('link', { name: /PlayHQ/i })).not.toBeInTheDocument()
   })
 
-  test('renders Last Match Result selecting the most recent completed match from matchResultsCsv with round, date, format, venue, teams, scores, result, innings closure types, and performances', () => {
+  test('falls back to the full Team name in the header when no displayName is configured', () => {
+    const { displayName: _omit, ...teamWithoutDisplayName } = seasonData.team
+    render(
+      <SeasonDashboard
+        seasonJson={{ ...seasonData, team: teamWithoutDisplayName }}
+        matchResultsCsv={matchResultsCsv}
+        combinedStatsCsv={combinedStatsCsv}
+      />,
+    )
+
+    expect(
+      within(screen.getByRole('banner')).getByRole('heading', { level: 1 }),
+    ).toHaveTextContent(/^Tech College \(Beresfield Memorial\)$/)
+  })
+
+  test('renders Last Match Result selecting the most recent completed match from matchResultsCsv with round, date, format, teams, scores, result, innings closure types, and performances, without the venue', () => {
     render(
       <SeasonDashboard
         seasonJson={seasonData}
@@ -52,8 +65,8 @@ describe('SeasonDashboard', () => {
     expect(within(lastMatchRegion).getByText('17 Oct 2026')).toBeInTheDocument()
     expect(within(lastMatchRegion).getByText('One Day')).toBeInTheDocument()
     expect(
-      within(lastMatchRegion).getByText(/Hudson Park \(KOTARA\)/i),
-    ).toBeInTheDocument()
+      within(lastMatchRegion).queryByText(/Hudson Park \(KOTARA\)/i),
+    ).not.toBeInTheDocument()
     expect(
       within(lastMatchRegion).getByText(
         /MDCC Lions Senior Men Div 7 won by 4 wickets/i,
@@ -258,9 +271,7 @@ describe('SeasonDashboard', () => {
     render(<SeasonDashboard />)
 
     expect(
-      screen.getByRole('heading', {
-        name: /Tech College \(Beresfield Memorial\)/i,
-      }),
+      screen.getByRole('heading', { level: 1, name: 'Tech College' }),
     ).toBeInTheDocument()
 
     const lastMatchRegion = screen.getByRole('region', {
@@ -723,7 +734,7 @@ describe('SeasonDashboard', () => {
     ])
   })
 
-  test('switches to Fielding tab, computes RO and Total Dismissals (Dis) sorted descending, merges Manual Tallies dropped catches across "Last, First" and "First Last" formats (case-insensitive, trimmed), and synthesizes players only in Manual Tallies', () => {
+  test('switches to Fielding tab, computes RO and Total Dismissals (Dis), sorts by Total Catches (Tot Ct) descending by default, merges Manual Tallies dropped catches across "Last, First" and "First Last" formats (case-insensitive, trimmed), and synthesizes players only in Manual Tallies', () => {
     // Augment CSV row to exercise WK catches, unassisted + assisted run outs, and stumpings alongside real Division 7 data
     const customCsv = [
       combinedStatsCsv.trim(),
@@ -785,19 +796,28 @@ describe('SeasonDashboard', () => {
 
     const rows = within(table).getAllByRole('row')
 
-    // #1 fielder by Total Dismissals: Alex Keeper (0 non-WK + 2 WK = 2 Tot Ct, 1 unassisted + 1 assisted = 2 RO, 1 St -> 5 Dis, 0 Drops)
+    // Default sort is Total Catches (Tot Ct) descending
+    const totCtHeader = headers.find((h) => h.textContent === 'Tot Ct')!
+    expect(totCtHeader).toHaveAttribute('aria-sort', 'descending')
+    const totCtValues = rows
+      .slice(1)
+      .map((r) => Number(within(r).getAllByRole('cell')[4].textContent))
+    expect(totCtValues).toEqual([...totCtValues].sort((a, b) => b - a))
+
+    // #1 fielder by Tot Ct: Alistair Osborne (3 Ct, 0 WK Ct, 3 Tot Ct, 0 RO, 0 St, 3 Dis, 1 Drop matched from '  osborne, alistair ')
     expect(
       within(rows[1])
         .getAllByRole('cell')
         .map((c) => c.textContent),
-    ).toEqual(['Alex Keeper', '2', '0', '2', '2', '2', '1', '5', '0'])
+    ).toEqual(['Alistair Osborne', '2', '3', '0', '3', '0', '0', '3', '1'])
 
-    // #2 fielder: Alistair Osborne (3 Ct, 0 WK Ct, 3 Tot Ct, 0 RO, 0 St, 3 Dis, 1 Drop matched from '  osborne, alistair ')
+    // Alex Keeper: 0 non-WK + 2 WK = 2 Tot Ct, 1 unassisted + 1 assisted = 2 RO, 1 St -> 5 Dis, 0 Drops
+    const keeperRow = rows.find((r) => within(r).queryByText('Alex Keeper'))
     expect(
-      within(rows[2])
+      within(keeperRow!)
         .getAllByRole('cell')
         .map((c) => c.textContent),
-    ).toEqual(['Alistair Osborne', '2', '3', '0', '3', '0', '0', '3', '1'])
+    ).toEqual(['Alex Keeper', '2', '0', '2', '2', '2', '1', '5', '0'])
 
     // Ewan Bauer (2 Dis, 1 Drop matched from 'Bauer, Ewan') and Andrew Moffat (2 Dis, 2 Drops matched from 'Andrew Moffat')
     const moffatRow = rows.find((r) =>

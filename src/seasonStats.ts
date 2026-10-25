@@ -479,10 +479,10 @@ export const STATS_DISCIPLINES: Record<StatsDiscipline, StatsDisciplineConfig> =
     fielding: {
       id: 'fielding',
       label: 'Fielding',
-      defaultSortHeader: 'Dis',
+      defaultSortHeader: 'Tot Ct',
       defaultSortDirection: 'desc',
       columns: FIELDING_COLUMNS,
-      sortPlayers: (players, sortHeader = 'Dis', sortDirection = 'desc') =>
+      sortPlayers: (players, sortHeader = 'Tot Ct', sortDirection = 'desc') =>
         sortPlayersByColumn(
           players,
           FIELDING_COLUMNS,
