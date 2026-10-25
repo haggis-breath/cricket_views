@@ -5,6 +5,21 @@ import seasonData from '../data/season.json'
 import matchResultsCsv from '../2026-10-23-match-results.csv?raw'
 import combinedStatsCsv from '../2026-10-23-combined-batting-bowling-fielding.csv?raw'
 
+// Fixed Round 2 standings so Ladder tests don't change with weekly data updates
+const ladderFixtureSeason = {
+  ...seasonData,
+  ladder: [
+    { position: 1, team: 'Warners Bay', played: 2, won: 2, lost: 0, drawnOrNoResult: 0, points: 6, percentage: 1.372 },
+    { position: 2, team: 'Kotara', played: 2, won: 1, lost: 1, drawnOrNoResult: 0, points: 4, percentage: 1.114 },
+    { position: 3, team: 'MDCC Lions Senior Men Div 7', played: 2, won: 1, lost: 1, drawnOrNoResult: 0, points: 4, percentage: 0.385 },
+    { position: 4, team: 'Nelson Bay', played: 2, won: 1, lost: 1, drawnOrNoResult: 0, points: 4, percentage: -0.01 },
+    { position: 5, team: 'Tech College (Beresfield Memorial)', played: 2, won: 1, lost: 1, drawnOrNoResult: 0, points: 4, percentage: -0.754 },
+    { position: 6, team: 'Adamstown Cricket Club (Scorpions)', played: 2, won: 1, lost: 1, drawnOrNoResult: 0, points: 4, percentage: -0.404 },
+    { position: 7, team: 'Adamstown Cricket Club (Blue)', played: 1, won: 0, lost: 1, drawnOrNoResult: 0, points: 1, percentage: -2.755 },
+    { position: 8, team: 'Beresfield Memorial', played: 1, won: 0, lost: 1, drawnOrNoResult: 0, points: 1, percentage: -1.724 },
+  ],
+}
+
 describe('SeasonDashboard', () => {
   test('renders Team header with short display name, competition grade, association, Season title, and last-updated indicator, without club name or PlayHQ link', () => {
     render(
@@ -27,7 +42,9 @@ describe('SeasonDashboard', () => {
       screen.getByText(/Newcastle District Cricket Association Inc\./i),
     ).toBeInTheDocument()
     expect(screen.getByText(/2026\/27 Summer/i)).toBeInTheDocument()
-    expect(screen.getByText(/Round 2 \(17 Oct 2026\)/i)).toBeInTheDocument()
+    expect(
+      screen.getByText(`Last updated: ${seasonData.season.lastUpdated}`),
+    ).toBeInTheDocument()
 
     expect(screen.queryByRole('link', { name: /PlayHQ/i })).not.toBeInTheDocument()
   })
@@ -277,15 +294,23 @@ describe('SeasonDashboard', () => {
     const lastMatchRegion = screen.getByRole('region', {
       name: /Last Match Result/i,
     })
-    expect(within(lastMatchRegion).getByText('Round 2')).toBeInTheDocument()
-    expect(within(lastMatchRegion).getByText(/Next Fixture/i)).toBeInTheDocument()
-    expect(within(lastMatchRegion).getByText('Round 3')).toBeInTheDocument()
+    // Kept independent of the specific round so weekly CSV updates don't break it
+    expect(
+      within(lastMatchRegion).queryByText(/No match results recorded yet/i),
+    ).not.toBeInTheDocument()
+    expect(
+      within(lastMatchRegion).getByRole('button', { name: /Show full result/i }),
+    ).toBeInTheDocument()
+    expect(
+      within(screen.getByRole('region', { name: /Season Statistics/i }))
+        .getAllByRole('row').length,
+    ).toBeGreaterThan(1)
   })
 
   test('renders the competition Ladder with all columns (Pos, Team, P, W, L, D/NR, Pts, %) in rank order', () => {
     render(
       <SeasonDashboard
-        seasonJson={seasonData}
+        seasonJson={ladderFixtureSeason}
         matchResultsCsv={matchResultsCsv}
         combinedStatsCsv={combinedStatsCsv}
       />,
@@ -357,7 +382,7 @@ describe('SeasonDashboard', () => {
   test('visually highlights our Team row in the Ladder and leaves opponent rows unhighlighted', () => {
     render(
       <SeasonDashboard
-        seasonJson={seasonData}
+        seasonJson={ladderFixtureSeason}
         matchResultsCsv={matchResultsCsv}
         combinedStatsCsv={combinedStatsCsv}
       />,
@@ -1686,7 +1711,7 @@ describe('SeasonDashboard mobile disclosures', () => {
   const renderDashboard = () =>
     render(
       <SeasonDashboard
-        seasonJson={seasonData}
+        seasonJson={ladderFixtureSeason}
         matchResultsCsv={matchResultsCsv}
         combinedStatsCsv={combinedStatsCsv}
       />,

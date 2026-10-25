@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import defaultSeasonData from '../data/season.json'
-import defaultMatchResultsCsv from '../2026-10-23-match-results.csv?raw'
-import defaultCombinedStatsCsv from '../2026-10-23-combined-batting-bowling-fielding.csv?raw'
+import defaultMatchResultsCsv from '../2026-10-25-match-results.csv?raw'
+import defaultCombinedStatsCsv from '../2026-10-25-combined-batting-bowling-fielding.csv?raw'
 import {
   formatMatchDate,
   isByeMatch,
