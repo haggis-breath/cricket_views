@@ -7,88 +7,88 @@
   },
   "season": {
     "title": "2026/27 Summer",
-    "lastUpdated": "Round 3 (24 Oct 2026)"
+    "lastUpdated": "Round 4 (31 Oct 2026)"
   },
   "ladder": [
     {
       "position": 1,
-      "team": "Warners Bay",
-      "played": 3,
+      "team": "Nelson Bay",
+      "played": 4,
       "won": 3,
-      "lost": 0,
+      "lost": 1,
       "drawnOrNoResult": 0,
-      "points": 9,
-      "percentage": 1.516
+      "points": 10,
+      "percentage": 1.017
     },
     {
       "position": 2,
-      "team": "Kotara",
-      "played": 3,
-      "won": 2,
+      "team": "Adamstown Cricket Club (Scorpions)",
+      "played": 4,
+      "won": 3,
       "lost": 1,
       "drawnOrNoResult": 0,
-      "points": 7,
-      "percentage": 1.303
+      "points": 10,
+      "percentage": 1.021
     },
     {
       "position": 3,
-      "team": "Nelson Bay",
-      "played": 3,
-      "won": 2,
+      "team": "Warners Bay",
+      "played": 4,
+      "won": 3,
       "lost": 1,
       "drawnOrNoResult": 0,
-      "points": 7,
-      "percentage": 0.735
+      "points": 10,
+      "percentage": 0.593
     },
     {
       "position": 4,
-      "team": "Adamstown Cricket Club (Scorpions)",
-      "played": 3,
+      "team": "Kotara",
+      "played": 4,
       "won": 2,
-      "lost": 1,
+      "lost": 2,
       "drawnOrNoResult": 0,
-      "points": 7,
-      "percentage": 0.253
+      "points": 8,
+      "percentage": 0.498
     },
     {
       "position": 5,
-      "team": "Tech College (Beresfield Memorial)",
-      "played": 3,
+      "team": "Adamstown Cricket Club (Blue)",
+      "played": 4,
       "won": 1,
       "lost": 2,
-      "drawnOrNoResult": 0,
-      "points": 5,
-      "percentage": -0.926
+      "drawnOrNoResult": 1,
+      "points": 7,
+      "percentage": -0.234
     },
     {
       "position": 6,
-      "team": "MDCC Lions Senior Men Div 7",
-      "played": 3,
+      "team": "Beresfield Memorial",
+      "played": 4,
       "won": 1,
       "lost": 2,
-      "drawnOrNoResult": 0,
-      "points": 5,
-      "percentage": -0.415
+      "drawnOrNoResult": 1,
+      "points": 7,
+      "percentage": -0.453
     },
     {
       "position": 7,
-      "team": "Adamstown Cricket Club (Blue)",
-      "played": 2,
-      "won": 0,
-      "lost": 2,
+      "team": "Tech College (Beresfield Memorial)",
+      "played": 4,
+      "won": 1,
+      "lost": 3,
       "drawnOrNoResult": 0,
-      "points": 2,
-      "percentage": -2.379
+      "points": 6,
+      "percentage": -1.503
     },
     {
       "position": 8,
-      "team": "Beresfield Memorial",
-      "played": 2,
-      "won": 0,
-      "lost": 2,
+      "team": "Merewether",
+      "played": 4,
+      "won": 1,
+      "lost": 3,
       "drawnOrNoResult": 0,
-      "points": 2,
-      "percentage": -1.801
+      "points": 6,
+      "percentage": -1.144
     }
   ],
   "manualTallies": {
@@ -98,7 +98,9 @@
       "Alistair Osborne": 1,
       "Mitchell Owen": 1,
       "Kale Hook": 1,
-      "Thomas Peeters": 1
+      "Thomas Peeters": 1,
+      "Jake Martin": 1,
+      "Tyran Cameron": 1
     }
   }
 }

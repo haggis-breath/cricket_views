@@ -5,7 +5,8 @@ import seasonData from '../data/season.json'
 import matchResultsCsv from '../2026-10-23-match-results.csv?raw'
 import combinedStatsCsv from '../2026-10-23-combined-batting-bowling-fielding.csv?raw'
 
-// Fixed Round 2 standings so Ladder tests don't change with weekly data updates
+// Fixed Round 2 standings and manual tallies so weekly data updates in
+// data/season.json don't alter the 14-player 2026-10-23 CSV fixture tests
 const ladderFixtureSeason = {
   ...seasonData,
   ladder: [
@@ -18,6 +19,12 @@ const ladderFixtureSeason = {
     { position: 7, team: 'Adamstown Cricket Club (Blue)', played: 1, won: 0, lost: 1, drawnOrNoResult: 0, points: 1, percentage: -2.755 },
     { position: 8, team: 'Beresfield Memorial', played: 1, won: 0, lost: 1, drawnOrNoResult: 0, points: 1, percentage: -1.724 },
   ],
+  manualTallies: {
+    droppedCatches: {
+      'Andrew Moffat': 1,
+      'Thomas Peeters': 1,
+    },
+  },
 }
 
 describe('SeasonDashboard', () => {
@@ -904,7 +911,7 @@ describe('SeasonDashboard', () => {
   test('sorts Batting Season Statistics columns when clicking column headers and toggles between descending and ascending with aria-sort', () => {
     render(
       <SeasonDashboard
-        seasonJson={seasonData}
+        seasonJson={ladderFixtureSeason}
         matchResultsCsv={matchResultsCsv}
         combinedStatsCsv={combinedStatsCsv}
       />,
@@ -997,7 +1004,7 @@ describe('SeasonDashboard', () => {
 
     render(
       <SeasonDashboard
-        seasonJson={seasonData}
+        seasonJson={ladderFixtureSeason}
         matchResultsCsv={matchResultsCsv}
         combinedStatsCsv={customCsv}
       />,
@@ -1066,7 +1073,7 @@ describe('SeasonDashboard', () => {
   test('sorts Best Bowling (BBI) by wickets descending then runs ascending (4/18 > 2/20 > 2/50 > 1/9 > 0/6) and places "-" at the bottom in both directions', () => {
     render(
       <SeasonDashboard
-        seasonJson={seasonData}
+        seasonJson={ladderFixtureSeason}
         matchResultsCsv={matchResultsCsv}
         combinedStatsCsv={combinedStatsCsv}
       />,
@@ -1132,7 +1139,7 @@ describe('SeasonDashboard', () => {
   test('sorts Overs (O) accurately by total balls bowled (11 > 10 > 8 > 7 > 6 > 4.3 > 3 > 1.3 > 1 > 0)', () => {
     render(
       <SeasonDashboard
-        seasonJson={seasonData}
+        seasonJson={ladderFixtureSeason}
         matchResultsCsv={matchResultsCsv}
         combinedStatsCsv={combinedStatsCsv}
       />,
