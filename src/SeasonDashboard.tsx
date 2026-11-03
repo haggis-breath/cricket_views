@@ -2,6 +2,7 @@ import { useState } from 'react'
 import defaultSeasonData from '../data/season.json'
 import defaultMatchResultsCsv from '../2026-11-03-match-results.csv?raw'
 import defaultCombinedStatsCsv from '../2026-11-03-combined-batting-bowling-fielding.csv?raw'
+import clubLogoUrl from '../Logo.png'
 import {
   formatMatchDate,
   isByeMatch,
@@ -21,6 +22,235 @@ import {
   buildLeaderboardCards,
   parseSeasonStats,
 } from './seasonStats'
+
+export type RetroThemeId = 'ch9' | 'snes' | 'club'
+
+interface RetroThemeStyle {
+  id: RetroThemeId
+  shortLabel: string
+  subtitle: string
+  pageBg: string
+  headerWrapper: string
+  headerStripe: string
+  logoBadge: string
+  headingFont: string
+  metaText: string
+  updatedPill: string
+  sectionCard: string
+  sectionHeaderBar: string
+  sectionHeading: string
+  headerBarMetaText: string
+  headerBarRoundText: string
+  statusBadge: string
+  resultBanner: string
+  resultBannerText: string
+  subCard: string
+  scoreValue: string
+  inningsTag: string
+  fixtureCard: string
+  fixtureBadge: string
+  tableHeaderRow: string
+  tableDivider: string
+  ourTeamRow: string
+  ourTeamName: string
+  opponentRow: string
+  leaderHighlightBox: string
+  leaderRankBadge: string
+  leaderValue: string
+  tabList: string
+  tabActive: string
+  tabInactive: string
+  stickyCellBg: string
+  sortActive: string
+  sortInactive: string
+  mobileToggle: string
+}
+
+const RETRO_THEMES: Record<RetroThemeId, RetroThemeStyle> = {
+  ch9: {
+    id: 'ch9',
+    shortLabel: "CH.9 '84 Broadcast",
+    subtitle: 'World Series TV Chyron (Gold / Black / White)',
+    pageBg: 'min-h-screen bg-[#0e1015] bg-crt-scanlines text-slate-100',
+    headerWrapper:
+      'relative border-b-4 border-[#ffe600] bg-gradient-to-r from-[#0a0b0e] via-[#141821] to-[#0a0b0e] shadow-[0_6px_0_#000]',
+    headerStripe:
+      'h-2.5 w-full bg-gradient-to-r from-[#ffe600] via-[#ffffff] to-[#1e293b]',
+    logoBadge:
+      'flex h-16 w-20 shrink-0 items-center justify-center rounded-md border-2 border-white bg-[#ffe600] p-1.5 shadow-[3px_3px_0_#000]',
+    headingFont:
+      'font-broadcast uppercase tracking-wider italic text-3xl sm:text-4xl font-extrabold text-white drop-shadow-[2px_2px_0_#000]',
+    metaText: 'font-broadcast text-sm font-bold uppercase tracking-widest text-[#ffe600]',
+    updatedPill:
+      'inline-flex items-center gap-2 rounded-none border-2 border-[#ffe600] bg-black px-3 py-1 font-scoreboard text-xs font-bold uppercase tracking-wider text-[#ffe600] shadow-[3px_3px_0_#000]',
+    sectionCard:
+      'rounded-none border-2 border-slate-300/80 bg-[#12161f] p-5 sm:p-6 shadow-[6px_6px_0_#000]',
+    sectionHeaderBar:
+      'flex flex-wrap items-center justify-between gap-2 -mx-5 -mt-5 sm:-mx-6 sm:-mt-6 mb-5 border-b-2 border-black bg-gradient-to-r from-[#ffe600] via-[#facc15] to-[#eab308] px-5 py-3 sm:px-6',
+    sectionHeading:
+      'font-broadcast text-xl sm:text-2xl font-extrabold uppercase italic tracking-wider text-black',
+    headerBarMetaText: 'text-black/90 font-semibold',
+    headerBarRoundText: 'font-extrabold text-black underline decoration-2',
+    statusBadge:
+      'rounded-none bg-black px-2.5 py-0.5 font-scoreboard text-[11px] font-bold uppercase tracking-wide text-[#ffe600]',
+    resultBanner:
+      'rounded-none border-l-4 border-[#ffe600] bg-black/90 px-4 py-3 text-sm ring-1 ring-white/15 shadow-inner',
+    resultBannerText: 'font-scoreboard font-bold tracking-wide text-[#ffe600]',
+    subCard:
+      'rounded-none border border-slate-600/80 bg-[#0b0e14] p-4 shadow-[3px_3px_0_#000]',
+    scoreValue: 'font-scoreboard text-xl font-extrabold text-[#ffe600]',
+    inningsTag:
+      'mb-1 inline-block bg-[#ffe600] px-1.5 py-0.5 font-broadcast text-xs font-extrabold uppercase tracking-wider text-black',
+    fixtureCard:
+      'mt-6 rounded-none border-2 border-[#ffe600]/80 bg-[#0b0e14] p-4 shadow-[4px_4px_0_#000]',
+    fixtureBadge:
+      'bg-[#ffe600] px-2 py-0.5 font-broadcast text-xs font-extrabold uppercase tracking-wider text-black',
+    tableHeaderRow:
+      'border-b-2 border-[#ffe600]/70 bg-black/50 font-broadcast text-xs font-bold uppercase tracking-widest text-[#ffe600]',
+    tableDivider: 'divide-y divide-slate-800',
+    ourTeamRow:
+      'bg-[#ffe600]/20 text-white ring-1 ring-inset ring-[#ffe600]',
+    ourTeamName: 'font-bold text-[#ffe600]',
+    opponentRow: 'text-slate-100 hover:bg-white/5',
+    leaderHighlightBox:
+      'mt-3 rounded-none border-l-4 border-[#ffe600] bg-black/80 p-3 ring-1 ring-white/15',
+    leaderRankBadge:
+      'bg-[#ffe600] px-1.5 py-0.5 font-scoreboard text-[11px] font-extrabold text-black',
+    leaderValue: 'font-scoreboard text-2xl font-extrabold text-[#ffe600]',
+    tabList:
+      'rounded-none border-2 border-black bg-[#0b0e14] p-1 shadow-[2px_2px_0_#000]',
+    tabActive:
+      'rounded-none bg-[#ffe600] px-4 py-1 font-broadcast text-sm font-extrabold uppercase tracking-wider text-black',
+    tabInactive:
+      'rounded-none px-4 py-1 font-broadcast text-sm font-bold uppercase tracking-wider text-slate-300 hover:text-white',
+    stickyCellBg: 'bg-[#12161f]',
+    sortActive: 'font-extrabold text-[#ffe600] underline decoration-2 underline-offset-4',
+    sortInactive: 'font-bold text-slate-300 hover:text-white',
+    mobileToggle:
+      'rounded-none border border-black bg-black/90 text-[#ffe600] hover:bg-black',
+  },
+  snes: {
+    id: 'snes',
+    shortLabel: "Super Int. Cricket '94",
+    subtitle: '16-Bit SNES Arcade (Turf Green + Club Gold)',
+    pageBg: 'min-h-screen bg-snes-turf text-slate-100 font-arcade',
+    headerWrapper:
+      'relative border-b-4 border-white bg-[#0d1926] shadow-[0_6px_0_#000]',
+    headerStripe:
+      'h-3 w-full bg-[repeating-linear-gradient(90deg,#ffe600_0px,#ffe600_24px,#000000_24px,#000000_32px,#ffffff_32px,#ffffff_48px,#000000_48px,#000000_56px)]',
+    logoBadge:
+      'flex h-16 w-20 shrink-0 items-center justify-center rounded-none border-2 border-black bg-[#ffe600] p-1.5 ring-2 ring-white shadow-[4px_4px_0_#000]',
+    headingFont:
+      'font-arcade uppercase tracking-wide text-2xl sm:text-3xl font-bold text-[#ffe600] drop-shadow-[3px_3px_0_#000]',
+    metaText: 'font-arcade text-xs font-bold uppercase tracking-widest text-emerald-300',
+    updatedPill:
+      'inline-flex items-center gap-2 rounded-none border-2 border-white bg-[#166534] px-3 py-1 font-scoreboard text-xs font-bold uppercase text-[#ffe600] shadow-[3px_3px_0_#000]',
+    sectionCard:
+      'rounded-none border-2 border-white bg-[#0f1722] p-5 sm:p-6 ring-2 ring-black shadow-[6px_6px_0_#000]',
+    sectionHeaderBar:
+      'flex flex-wrap items-center justify-between gap-2 border-b-2 border-[#ffe600] pb-3.5',
+    sectionHeading:
+      'font-arcade text-lg sm:text-xl font-bold uppercase tracking-wider text-[#ffe600] drop-shadow-[2px_2px_0_#000]',
+    headerBarMetaText: 'text-slate-200',
+    headerBarRoundText: 'font-bold text-[#ffe600]',
+    statusBadge:
+      'rounded-none border border-[#ffe600] bg-black px-2.5 py-0.5 font-scoreboard text-[11px] font-bold uppercase tracking-wide text-[#ffe600]',
+    resultBanner:
+      'rounded-none border-2 border-[#4ade80] bg-[#062e16] px-4 py-3 text-sm shadow-[3px_3px_0_#000]',
+    resultBannerText: 'font-scoreboard font-bold text-[#ffe600]',
+    subCard:
+      'rounded-none border-2 border-slate-500 bg-[#090e16] p-4 shadow-[3px_3px_0_#000]',
+    scoreValue: 'font-scoreboard text-lg font-extrabold text-[#4ade80]',
+    inningsTag:
+      'mb-1 inline-block border border-[#ffe600] bg-black px-1.5 py-0.5 font-scoreboard text-[10px] font-bold uppercase tracking-wider text-[#ffe600]',
+    fixtureCard:
+      'mt-6 rounded-none border-2 border-[#ffe600] bg-[#090e16] p-4 shadow-[4px_4px_0_#000]',
+    fixtureBadge:
+      'border border-black bg-[#ffe600] px-2 py-0.5 font-scoreboard text-[11px] font-extrabold uppercase tracking-wider text-black',
+    tableHeaderRow:
+      'border-b-2 border-white/60 bg-black/40 font-scoreboard text-[11px] font-bold uppercase tracking-wider text-[#ffe600]',
+    tableDivider: 'divide-y divide-slate-800/90',
+    ourTeamRow:
+      'bg-[#166534]/70 text-white ring-2 ring-inset ring-[#ffe600]',
+    ourTeamName: 'font-bold text-[#ffe600]',
+    opponentRow: 'text-slate-100 hover:bg-white/5',
+    leaderHighlightBox:
+      'mt-3 rounded-none border-2 border-[#ffe600] bg-[#062e16]/90 p-3 shadow-[3px_3px_0_#000]',
+    leaderRankBadge:
+      'bg-[#ffe600] px-1.5 py-0.5 font-scoreboard text-[10px] font-extrabold text-black',
+    leaderValue: 'font-scoreboard text-2xl font-extrabold text-[#ffe600]',
+    tabList:
+      'rounded-none border-2 border-white bg-[#090e16] p-1 shadow-[3px_3px_0_#000]',
+    tabActive:
+      'rounded-none bg-[#ffe600] px-4 py-1.5 font-scoreboard text-xs font-extrabold uppercase text-black',
+    tabInactive:
+      'rounded-none px-4 py-1.5 font-scoreboard text-xs font-semibold uppercase text-slate-300 hover:text-white',
+    stickyCellBg: 'bg-[#0f1722]',
+    sortActive: 'font-extrabold text-[#ffe600]',
+    sortInactive: 'font-semibold text-slate-300 hover:text-white',
+    mobileToggle:
+      'rounded-none border-2 border-white bg-[#166534] text-[#ffe600] shadow-[2px_2px_0_#000]',
+  },
+  club: {
+    id: 'club',
+    shortLabel: 'Club Kit Heritage',
+    subtitle: 'Beresfield Shirt Palette (Canary / Black / Silver / White)',
+    pageBg: 'min-h-screen bg-[#0b0c10] text-slate-100',
+    headerWrapper:
+      'relative border-b border-[#ffe600]/40 bg-gradient-to-b from-[#151821] to-[#0b0c10]',
+    headerStripe: 'h-2 w-full bg-shirt-stripes',
+    logoBadge:
+      'flex h-16 w-20 shrink-0 items-center justify-center rounded-xl border-2 border-white/90 bg-gradient-to-b from-[#ffe600] to-[#facc15] p-1.5 shadow-md',
+    headingFont:
+      'font-broadcast uppercase tracking-tight text-2xl sm:text-4xl font-extrabold text-white',
+    metaText: 'text-xs font-bold uppercase tracking-wider text-[#ffe600]',
+    updatedPill:
+      'inline-flex items-center rounded-full border border-[#ffe600]/40 bg-[#171a24] px-3.5 py-1 text-xs font-semibold text-slate-200',
+    sectionCard:
+      'rounded-2xl border border-slate-700/80 border-t-4 border-t-[#ffe600] bg-[#141720] p-6 shadow-xl',
+    sectionHeaderBar:
+      'flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-4',
+    sectionHeading:
+      'font-broadcast text-xl sm:text-2xl font-extrabold uppercase tracking-wide text-white',
+    headerBarMetaText: 'text-slate-300',
+    headerBarRoundText: 'font-bold text-[#ffe600]',
+    statusBadge:
+      'rounded-full border border-[#ffe600]/40 bg-black/80 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#ffe600]',
+    resultBanner:
+      'rounded-xl border border-[#ffe600]/40 bg-[#ffe600]/10 px-4 py-3 text-sm',
+    resultBannerText: 'font-semibold text-[#ffe600]',
+    subCard: 'rounded-xl border border-slate-700/80 bg-[#0d0f15] p-4',
+    scoreValue: 'font-scoreboard text-lg font-bold text-[#ffe600]',
+    inningsTag:
+      'mb-1 text-[10px] font-bold uppercase tracking-wider text-[#ffe600]',
+    fixtureCard:
+      'mt-6 rounded-xl border border-slate-700 bg-[#0d0f15] p-4',
+    fixtureBadge:
+      'rounded-md bg-[#ffe600] px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wider text-black',
+    tableHeaderRow:
+      'border-b border-slate-700 text-[11px] font-bold uppercase tracking-wider text-slate-300',
+    tableDivider: 'divide-y divide-slate-800/80',
+    ourTeamRow:
+      'bg-[#ffe600]/15 text-white ring-1 ring-inset ring-[#ffe600]/50',
+    ourTeamName: 'font-bold text-[#ffe600]',
+    opponentRow: 'text-slate-200 hover:bg-slate-800/40',
+    leaderHighlightBox:
+      'mt-3 rounded-lg border border-[#ffe600]/40 bg-[#ffe600]/10 p-3',
+    leaderRankBadge:
+      'rounded bg-[#ffe600] px-1.5 py-0.5 font-scoreboard text-[10px] font-extrabold text-black',
+    leaderValue: 'font-scoreboard text-2xl font-extrabold text-[#ffe600]',
+    tabList: 'rounded-xl border border-slate-700 bg-[#0d0f15] p-1',
+    tabActive:
+      'rounded-lg bg-[#ffe600] px-4 py-1.5 text-xs font-extrabold text-black shadow-sm',
+    tabInactive:
+      'rounded-lg px-4 py-1.5 text-xs font-semibold text-slate-300 hover:text-white',
+    stickyCellBg: 'bg-[#141720]',
+    sortActive: 'font-bold text-[#ffe600]',
+    sortInactive: 'font-semibold text-slate-300 hover:text-white',
+    mobileToggle:
+      'rounded-lg border border-slate-600 bg-slate-800/80 text-slate-100 hover:bg-slate-700/80',
+  },
+}
 
 export interface TeamMetadata {
   /** Full PlayHQ team name, used to match the Team in results and the Ladder. */
@@ -81,6 +311,7 @@ interface MobileToggleProps {
   controls: string
   showLabel: string
   hideLabel: string
+  themeClass?: string
   className?: string
 }
 
@@ -95,6 +326,7 @@ function MobileToggle({
   controls,
   showLabel,
   hideLabel,
+  themeClass = 'rounded-lg border border-slate-700 bg-slate-800/60 text-slate-200 hover:bg-slate-700/60',
   className = '',
 }: MobileToggleProps) {
   return (
@@ -103,7 +335,7 @@ function MobileToggle({
       aria-expanded={expanded}
       aria-controls={controls}
       onClick={onToggle}
-      className={`inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-700/60 sm:hidden ${className}`}
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition sm:hidden ${themeClass} ${className}`}
     >
       <span>{expanded ? hideLabel : showLabel}</span>
       <svg
@@ -134,11 +366,15 @@ function mobileCollapse(
   return expanded ? '' : MOBILE_COLLAPSED_CLASSES[display]
 }
 
+const THEME_OPTIONS: RetroThemeId[] = ['ch9', 'snes', 'club']
+
 export function SeasonDashboard({
   seasonJson = defaultSeasonData,
   matchResultsCsv = defaultMatchResultsCsv,
   combinedStatsCsv = defaultCombinedStatsCsv,
 }: SeasonDashboardProps) {
+  const [activeTheme, setActiveTheme] = useState<RetroThemeId>('ch9')
+  const theme = RETRO_THEMES[activeTheme]
   const [activeStatsTab, setActiveStatsTab] =
     useState<StatsDiscipline>('batting')
   const [sortStateByTab, setSortStateByTab] = useState<
@@ -215,24 +451,72 @@ export function SeasonDashboard({
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
-        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className={theme.pageBg}>
+      <aside
+        aria-label="Theme selector"
+        className="border-b border-[#ffe600]/30 bg-black/95 px-4 py-2 text-xs text-slate-200"
+      >
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 sm:px-2">
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-2 w-2 rounded-full bg-[#ffe600]" />
+            <span className="font-scoreboard text-[11px] font-bold uppercase tracking-wider text-[#ffe600]">
+              Retro Style:
+            </span>
+            <span className="hidden text-slate-400 md:inline">
+              {theme.subtitle}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {THEME_OPTIONS.map((optionId) => {
+              const opt = RETRO_THEMES[optionId]
+              const isCurrent = activeTheme === optionId
+              return (
+                <button
+                  key={optionId}
+                  type="button"
+                  aria-pressed={isCurrent}
+                  onClick={() => setActiveTheme(optionId)}
+                  className={`px-2.5 py-1 font-scoreboard text-[11px] font-bold uppercase tracking-wider transition ${
+                    isCurrent
+                      ? 'border border-white bg-[#ffe600] text-black shadow-[2px_2px_0_#fff]'
+                      : 'border border-slate-700 bg-slate-900 text-slate-300 hover:border-[#ffe600]/60 hover:text-white'
+                  }`}
+                >
+                  {opt.shortLabel}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </aside>
+
+      <header className={theme.headerWrapper}>
+        <div className={theme.headerStripe} aria-hidden="true" />
+        <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-400">
-                <span>{team.association}</span>
-                <span aria-hidden="true">•</span>
-                <span>{team.grade}</span>
-                <span aria-hidden="true">•</span>
-                <span>{season.title}</span>
+            <div className="flex items-center gap-4">
+              <div className={theme.logoBadge} aria-hidden="true">
+                <img
+                  src={clubLogoUrl}
+                  alt=""
+                  className="h-full w-full object-contain mix-blend-multiply"
+                />
               </div>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
-                {team.displayName ?? team.name}
-              </h1>
+              <div>
+                <div className={`flex flex-wrap items-center gap-2 ${theme.metaText}`}>
+                  <span>{team.association}</span>
+                  <span aria-hidden="true">•</span>
+                  <span>{team.grade}</span>
+                  <span aria-hidden="true">•</span>
+                  <span>{season.title}</span>
+                </div>
+                <h1 className={`mt-0.5 ${theme.headingFont}`}>
+                  {team.displayName ?? team.name}
+                </h1>
+              </div>
             </div>
             <div className="flex flex-col items-start gap-2 sm:items-end">
-              <span className="inline-flex items-center rounded-full border border-slate-700 bg-slate-800/80 px-3 py-1 text-xs font-medium text-slate-300">
+              <span className={theme.updatedPill}>
                 Last updated: {season.lastUpdated}
               </span>
             </div>
@@ -244,312 +528,312 @@ export function SeasonDashboard({
         <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
           <section
             aria-labelledby="last-match-result-heading"
-            className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg"
+            className={theme.sectionCard}
           >
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-4">
-            <h2
-              id="last-match-result-heading"
-              className="text-lg font-bold tracking-tight text-white"
-            >
-              Last Match Result
-            </h2>
-            {lastMatch && (
-              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
-                <span className="font-semibold text-emerald-400">
-                  {lastMatch.roundName}
-                </span>
-                <span aria-hidden="true">•</span>
-                <span>{formatMatchDate(lastMatch.matchDate)}</span>
-                {lastMatch.format && (
-                  <>
-                    <span aria-hidden="true">•</span>
-                    <span>{lastMatch.format}</span>
-                  </>
-                )}
-                <span className="rounded-full bg-slate-800 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-200">
-                  {lastMatch.status}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {lastMatch ? (
-            <div className="mt-5 space-y-5">
-              <div className="space-y-3">
-                <div className="rounded-xl bg-emerald-950/30 px-4 py-3 text-sm border border-emerald-900/50">
-                  <span className="font-semibold text-emerald-300">
-                    {resolveResultSummary(lastMatch, team.name)}
+            <div className={theme.sectionHeaderBar}>
+              <h2
+                id="last-match-result-heading"
+                className={theme.sectionHeading}
+              >
+                Last Match Result
+              </h2>
+              {lastMatch && (
+                <div className={`flex flex-wrap items-center gap-2 text-xs ${theme.headerBarMetaText}`}>
+                  <span className={theme.headerBarRoundText}>
+                    {lastMatch.roundName}
+                  </span>
+                  <span aria-hidden="true">•</span>
+                  <span>{formatMatchDate(lastMatch.matchDate)}</span>
+                  {lastMatch.format && (
+                    <>
+                      <span aria-hidden="true">•</span>
+                      <span>{lastMatch.format}</span>
+                    </>
+                  )}
+                  <span className={theme.statusBadge}>
+                    {lastMatch.status}
                   </span>
                 </div>
-                {(!isByeMatch(lastMatch) || lastMatch.innings.length > 0) && (
-                  <MobileToggle
-                    expanded={lastMatchExpanded}
-                    onToggle={() => setLastMatchExpanded((v) => !v)}
-                    controls="last-match-details"
-                    showLabel="Show full result"
-                    hideLabel="Hide full result"
-                  />
-                )}
-              </div>
+              )}
+            </div>
 
-              <div
-                id="last-match-details"
-                className={`space-y-5 ${mobileCollapse(lastMatchExpanded)}`}
-              >
-                {!isByeMatch(lastMatch) && (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {[
-                      {
-                        label: 'Home',
-                        teamName: lastMatch.homeTeam,
-                        score: lastMatch.homeTeamScore,
-                      },
-                      {
-                        label: 'Away',
-                        teamName: lastMatch.awayTeam,
-                        score: lastMatch.awayTeamScore,
-                      },
-                    ].map((side) => (
-                      <div
-                        key={side.label}
-                        className="rounded-xl border border-slate-800 bg-slate-950/60 p-4"
-                      >
-                        <div className="text-xs font-medium uppercase tracking-wider text-slate-400">
-                          {side.label}
-                        </div>
-                        <div className="mt-1 flex items-baseline justify-between gap-2">
-                          <span className="font-semibold text-white">
-                            {side.teamName}
-                          </span>
-                          <span className="font-mono text-lg font-bold text-emerald-400">
-                            {side.score || '—'}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+            {lastMatch ? (
+              <div className="mt-5 space-y-5">
+                <div className="space-y-3">
+                  <div className={theme.resultBanner}>
+                    <span className={theme.resultBannerText}>
+                      {resolveResultSummary(lastMatch, team.name)}
+                    </span>
                   </div>
-                )}
+                  {(!isByeMatch(lastMatch) || lastMatch.innings.length > 0) && (
+                    <MobileToggle
+                      expanded={lastMatchExpanded}
+                      onToggle={() => setLastMatchExpanded((v) => !v)}
+                      controls="last-match-details"
+                      showLabel="Show full result"
+                      hideLabel="Hide full result"
+                      themeClass={theme.mobileToggle}
+                    />
+                  )}
+                </div>
 
-                {lastMatch.innings.length > 0 && (
-                  <div className="space-y-3">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                      Innings Breakdown
-                    </h3>
+                <div
+                  id="last-match-details"
+                  className={`space-y-5 ${mobileCollapse(lastMatchExpanded)}`}
+                >
+                  {!isByeMatch(lastMatch) && (
                     <div className="grid gap-3 sm:grid-cols-2">
-                      {lastMatch.innings.map((inn) => (
+                      {[
+                        {
+                          label: 'Home',
+                          teamName: lastMatch.homeTeam,
+                          score: lastMatch.homeTeamScore,
+                        },
+                        {
+                          label: 'Away',
+                          teamName: lastMatch.awayTeam,
+                          score: lastMatch.awayTeamScore,
+                        },
+                      ].map((side) => (
                         <div
-                          key={inn.inningsNumber}
-                          className="rounded-xl border border-slate-800/90 bg-slate-950/40 p-3.5 text-xs"
+                          key={side.label}
+                          className={theme.subCard}
                         >
-                          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-400/90">
-                            {ORDINAL_LABELS[inn.inningsNumber] ??
-                              `Innings ${inn.inningsNumber}`}
+                          <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                            {side.label}
                           </div>
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-semibold text-slate-200">
-                              {inn.team}
+                          <div className="mt-1 flex items-baseline justify-between gap-2">
+                            <span className="font-bold text-white">
+                              {side.teamName}
                             </span>
-                            <span className="font-mono font-bold text-slate-100">
-                              {inn.score}
+                            <span className={theme.scoreValue}>
+                              {side.score || '—'}
                             </span>
                           </div>
-                          {inn.closureType && (
-                            <div className="mt-0.5 text-[11px] text-slate-400">
-                              {inn.closureType}
-                            </div>
-                          )}
-                          {(inn.battingPerformances.length > 0 ||
-                            inn.bowlingPerformances.length > 0) && (
-                            <div className="mt-2.5 space-y-1.5 border-t border-slate-800/80 pt-2">
-                              {inn.battingPerformances.length > 0 && (
-                                <div>
-                                  <span className="font-medium text-slate-400">
-                                    Batting:{' '}
-                                  </span>
-                                  <span className="text-slate-200">
-                                    {inn.battingPerformances.join(', ')}
-                                  </span>
-                                </div>
-                              )}
-                              {inn.bowlingPerformances.length > 0 && (
-                                <div>
-                                  <span className="font-medium text-slate-400">
-                                    Bowling:{' '}
-                                  </span>
-                                  <span className="text-slate-200">
-                                    {inn.bowlingPerformances.join(', ')}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <p className="mt-4 text-sm text-slate-400">
-              No match results recorded yet.
-            </p>
-          )}
+                  )}
 
-          {nextUpcomingMatch && lastMatch !== nextUpcomingMatch && (
-            <div className="mt-6 rounded-xl border border-slate-800 bg-slate-950/70 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-amber-300">
-                    Next Fixture
-                  </span>
-                  <span className="text-xs font-semibold text-slate-300">
-                    {nextUpcomingMatch.roundName}
+                  {lastMatch.innings.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        Innings Breakdown
+                      </h3>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {lastMatch.innings.map((inn) => (
+                          <div
+                            key={inn.inningsNumber}
+                            className={`${theme.subCard} text-xs`}
+                          >
+                            <div className={theme.inningsTag}>
+                              {ORDINAL_LABELS[inn.inningsNumber] ??
+                                `Innings ${inn.inningsNumber}`}
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-bold text-white">
+                                {inn.team}
+                              </span>
+                              <span className="font-scoreboard font-bold text-[#ffe600]">
+                                {inn.score}
+                              </span>
+                            </div>
+                            {inn.closureType && (
+                              <div className="mt-0.5 text-[11px] text-slate-300">
+                                {inn.closureType}
+                              </div>
+                            )}
+                            {(inn.battingPerformances.length > 0 ||
+                              inn.bowlingPerformances.length > 0) && (
+                              <div className="mt-2.5 space-y-1.5 border-t border-slate-700/80 pt-2">
+                                {inn.battingPerformances.length > 0 && (
+                                  <div>
+                                    <span className="font-semibold text-[#ffe600]">
+                                      Batting:{' '}
+                                    </span>
+                                    <span className="text-slate-100">
+                                      {inn.battingPerformances.join(', ')}
+                                    </span>
+                                  </div>
+                                )}
+                                {inn.bowlingPerformances.length > 0 && (
+                                  <div>
+                                    <span className="font-semibold text-[#ffe600]">
+                                      Bowling:{' '}
+                                    </span>
+                                    <span className="text-slate-100">
+                                      {inn.bowlingPerformances.join(', ')}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-slate-300">
+                No match results recorded yet.
+              </p>
+            )}
+
+            {nextUpcomingMatch && lastMatch !== nextUpcomingMatch && (
+              <div className={theme.fixtureCard}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className={theme.fixtureBadge}>
+                      Next Fixture
+                    </span>
+                    <span className="text-xs font-bold text-[#ffe600]">
+                      {nextUpcomingMatch.roundName}
+                    </span>
+                  </div>
+                  <span className="text-xs font-medium text-slate-300">
+                    {nextUpcomingMatch.result ||
+                      formatMatchDate(nextUpcomingMatch.matchDate)}
                   </span>
                 </div>
-                <span className="text-xs text-slate-400">
-                  {nextUpcomingMatch.result ||
-                    formatMatchDate(nextUpcomingMatch.matchDate)}
-                </span>
-              </div>
-              <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
-                <span className="text-sm font-semibold text-white">
-                  {resolveOpponentLabel(nextUpcomingMatch, team.name)}
-                </span>
-                {nextUpcomingMatch.venue && (
-                  <span className="text-xs text-slate-400">
-                    {nextUpcomingMatch.venue}
+                <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-sm font-bold text-white">
+                    {resolveOpponentLabel(nextUpcomingMatch, team.name)}
                   </span>
-                )}
+                  {nextUpcomingMatch.venue && (
+                    <span className="text-xs text-slate-300">
+                      {nextUpcomingMatch.venue}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-        </section>
-
-        <section
-          aria-labelledby="ladder-heading"
-          className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-4">
-            <h2
-              id="ladder-heading"
-              className="text-lg font-bold tracking-tight text-white"
-            >
-              Ladder
-            </h2>
-            {ladderRows.some((_, i) => !isLadderRowInCollapsedView(i)) && (
-              <MobileToggle
-                expanded={ladderExpanded}
-                onToggle={() => setLadderExpanded((v) => !v)}
-                controls="ladder-table"
-                showLabel="Show full ladder"
-                hideLabel="Show fewer"
-              />
             )}
-          </div>
+          </section>
 
-          {ladderRows.length > 0 ? (
-            <div className="mt-4 overflow-x-auto">
-              <table
-                id="ladder-table"
-                className="w-full border-collapse text-left text-xs sm:text-sm"
+          <section
+            aria-labelledby="ladder-heading"
+            className={theme.sectionCard}
+          >
+            <div className={theme.sectionHeaderBar}>
+              <h2
+                id="ladder-heading"
+                className={theme.sectionHeading}
               >
-                <thead>
-                  <tr className="border-b border-slate-800 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                    <th scope="col" className="py-2.5 pr-2 text-center">
-                      Pos
-                    </th>
-                    <th scope="col" className="py-2.5 px-2">
-                      Team
-                    </th>
-                    <th scope="col" className="py-2.5 px-1.5 text-right">
-                      P
-                    </th>
-                    <th scope="col" className="py-2.5 px-1.5 text-right">
-                      W
-                    </th>
-                    <th scope="col" className="py-2.5 px-1.5 text-right">
-                      L
-                    </th>
-                    <th scope="col" className="py-2.5 px-1.5 text-right">
-                      D/NR
-                    </th>
-                    <th scope="col" className="py-2.5 px-2 text-right">
-                      Pts
-                    </th>
-                    <th scope="col" className="py-2.5 pl-2 text-right">
-                      %
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/70">
-                  {ladderRows.map((entry, index) => {
-                    const isOurTeam = isSameTeam(entry.team, team.name)
-                    const collapseClasses = isLadderRowInCollapsedView(index)
-                      ? ''
-                      : mobileCollapse(ladderExpanded, 'table-row')
-                    return (
-                      <tr
-                        key={entry.position}
-                        aria-current={isOurTeam ? 'true' : undefined}
-                        className={`${
-                          isOurTeam
-                            ? 'bg-emerald-950/50 text-emerald-200 ring-1 ring-inset ring-emerald-500/40'
-                            : 'text-slate-200 hover:bg-slate-800/30'
-                        } ${collapseClasses}`}
-                      >
-                        <td className="py-2.5 pl-2 pr-2 text-center font-mono text-xs text-slate-400">
-                          {entry.position}
-                        </td>
-                        <td
-                          className={`py-2.5 px-2 ${
-                            isOurTeam
-                              ? 'font-bold text-emerald-300'
-                              : 'font-medium text-white'
-                          }`}
-                        >
-                          {entry.team}
-                        </td>
-                        <td className="py-2.5 px-1.5 text-right font-mono">
-                          {entry.played}
-                        </td>
-                        <td className="py-2.5 px-1.5 text-right font-mono">
-                          {entry.won}
-                        </td>
-                        <td className="py-2.5 px-1.5 text-right font-mono">
-                          {entry.lost}
-                        </td>
-                        <td className="py-2.5 px-1.5 text-right font-mono">
-                          {entry.drawnOrNoResult}
-                        </td>
-                        <td className="py-2.5 px-2 text-right font-mono font-bold text-white">
-                          {entry.points}
-                        </td>
-                        <td className="py-2.5 pl-2 pr-2 text-right font-mono text-slate-300">
-                          {entry.percentage.toFixed(2)}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                Ladder
+              </h2>
+              {ladderRows.some((_, i) => !isLadderRowInCollapsedView(i)) && (
+                <MobileToggle
+                  expanded={ladderExpanded}
+                  onToggle={() => setLadderExpanded((v) => !v)}
+                  controls="ladder-table"
+                  showLabel="Show full ladder"
+                  hideLabel="Show fewer"
+                  themeClass={theme.mobileToggle}
+                />
+              )}
             </div>
-          ) : (
-            <p className="mt-4 text-sm text-slate-400">
-              No ladder entries available.
-            </p>
-          )}
-        </section>
+
+            {ladderRows.length > 0 ? (
+              <div className="mt-4 overflow-x-auto">
+                <table
+                  id="ladder-table"
+                  className="w-full border-collapse text-left text-xs sm:text-sm"
+                >
+                  <thead>
+                    <tr className={theme.tableHeaderRow}>
+                      <th scope="col" className="py-2.5 pr-2 text-center">
+                        Pos
+                      </th>
+                      <th scope="col" className="py-2.5 px-2">
+                        Team
+                      </th>
+                      <th scope="col" className="py-2.5 px-1.5 text-right">
+                        P
+                      </th>
+                      <th scope="col" className="py-2.5 px-1.5 text-right">
+                        W
+                      </th>
+                      <th scope="col" className="py-2.5 px-1.5 text-right">
+                        L
+                      </th>
+                      <th scope="col" className="py-2.5 px-1.5 text-right">
+                        D/NR
+                      </th>
+                      <th scope="col" className="py-2.5 px-2 text-right">
+                        Pts
+                      </th>
+                      <th scope="col" className="py-2.5 pl-2 text-right">
+                        %
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className={theme.tableDivider}>
+                    {ladderRows.map((entry, index) => {
+                      const isOurTeam = isSameTeam(entry.team, team.name)
+                      const collapseClasses = isLadderRowInCollapsedView(index)
+                        ? ''
+                        : mobileCollapse(ladderExpanded, 'table-row')
+                      return (
+                        <tr
+                          key={entry.position}
+                          aria-current={isOurTeam ? 'true' : undefined}
+                          className={`${
+                            isOurTeam ? theme.ourTeamRow : theme.opponentRow
+                          } ${collapseClasses}`}
+                        >
+                          <td className="py-2.5 pl-2 pr-2 text-center font-scoreboard text-xs text-slate-300">
+                            {entry.position}
+                          </td>
+                          <td
+                            className={`py-2.5 px-2 ${
+                              isOurTeam
+                                ? theme.ourTeamName
+                                : 'font-medium text-white'
+                            }`}
+                          >
+                            {entry.team}
+                          </td>
+                          <td className="py-2.5 px-1.5 text-right font-scoreboard">
+                            {entry.played}
+                          </td>
+                          <td className="py-2.5 px-1.5 text-right font-scoreboard">
+                            {entry.won}
+                          </td>
+                          <td className="py-2.5 px-1.5 text-right font-scoreboard">
+                            {entry.lost}
+                          </td>
+                          <td className="py-2.5 px-1.5 text-right font-scoreboard">
+                            {entry.drawnOrNoResult}
+                          </td>
+                          <td className="py-2.5 px-2 text-right font-scoreboard font-bold text-[#ffe600]">
+                            {entry.points}
+                          </td>
+                          <td className="py-2.5 pl-2 pr-2 text-right font-scoreboard text-slate-200">
+                            {entry.percentage.toFixed(2)}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-slate-300">
+                No ladder entries available.
+              </p>
+            )}
+          </section>
         </div>
 
         <section
           aria-labelledby="leaderboard-heading"
-          className="mt-8 rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg"
+          className={`mt-8 ${theme.sectionCard}`}
         >
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-4">
+          <div className={theme.sectionHeaderBar}>
             <h2
               id="leaderboard-heading"
-              className="text-lg font-bold tracking-tight text-white"
+              className={theme.sectionHeading}
             >
               Leaderboard
             </h2>
@@ -563,27 +847,27 @@ export function SeasonDashboard({
                 <article
                   key={card.id}
                   aria-labelledby={headingId}
-                  className="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-950/60 p-4"
+                  className={`flex flex-col justify-between ${theme.subCard}`}
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2">
                       <h3
                         id={headingId}
-                        className="text-xs font-bold uppercase tracking-wider text-emerald-400"
+                        className="font-broadcast text-sm font-extrabold uppercase tracking-wider text-[#ffe600]"
                       >
                         {card.title}
                       </h3>
-                      <span className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+                      <span className="font-scoreboard text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         {card.unitLabel}
                       </span>
                     </div>
 
                     {card.leaders.length > 0 ? (
-                      <div className="mt-3 rounded-lg border border-emerald-900/40 bg-emerald-950/25 p-3">
+                      <div className={theme.leaderHighlightBox}>
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-300">
+                              <span className={theme.leaderRankBadge}>
                                 #1
                               </span>
                               <span className="font-bold text-white">
@@ -591,7 +875,7 @@ export function SeasonDashboard({
                               </span>
                             </div>
                             {card.leaders[0].supportingContext && (
-                              <div className="mt-1 text-xs text-slate-300">
+                              <div className="mt-1 font-scoreboard text-xs text-slate-300">
                                 {card.leaders
                                   .map((l) => l.supportingContext)
                                   .filter(Boolean)
@@ -599,7 +883,7 @@ export function SeasonDashboard({
                               </div>
                             )}
                           </div>
-                          <span className="font-mono text-2xl font-extrabold text-emerald-400">
+                          <span className={theme.leaderValue}>
                             {card.leaders[0].primaryValue}
                           </span>
                         </div>
@@ -623,11 +907,12 @@ export function SeasonDashboard({
                           controls={runnersUpId}
                           showLabel="Show runners-up"
                           hideLabel="Hide runners-up"
+                          themeClass={theme.mobileToggle}
                           className="mt-3"
                         />
                         <ol
                           id={runnersUpId}
-                          className={`mt-3 divide-y divide-slate-800/60 text-xs ${mobileCollapse(
+                          className={`mt-3 divide-y divide-slate-800 text-xs ${mobileCollapse(
                             !!expandedLeaderboardCards[card.id],
                           )}`}
                         >
@@ -637,14 +922,14 @@ export function SeasonDashboard({
                               className="flex items-center justify-between gap-2 py-1.5"
                             >
                               <div className="flex items-center gap-2 min-w-0">
-                                <span className="font-mono text-[11px] font-semibold text-slate-400">
+                                <span className="font-scoreboard text-[11px] font-bold text-[#ffe600]/80">
                                   #{entry.rank}
                                 </span>
-                                <span className="truncate font-medium text-slate-200">
+                                <span className="truncate font-medium text-slate-100">
                                   {entry.playerName}
                                 </span>
                               </div>
-                              <span className="font-mono font-bold text-slate-100">
+                              <span className="font-scoreboard font-bold text-white">
                                 {entry.primaryValue}
                               </span>
                             </li>
@@ -661,13 +946,13 @@ export function SeasonDashboard({
 
         <section
           aria-labelledby="season-statistics-heading"
-          className="mt-8 rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg"
+          className={`mt-8 ${theme.sectionCard}`}
         >
-          <div className="flex flex-col gap-4 border-b border-slate-800 pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className={`${theme.sectionHeaderBar} flex-col sm:flex-row sm:items-center`}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2
                 id="season-statistics-heading"
-                className="text-lg font-bold tracking-tight text-white"
+                className={theme.sectionHeading}
               >
                 Season Statistics
               </h2>
@@ -677,12 +962,13 @@ export function SeasonDashboard({
                 controls="season-statistics-body"
                 showLabel="Show statistics"
                 hideLabel="Hide statistics"
+                themeClass={theme.mobileToggle}
               />
             </div>
             <div
               role="tablist"
               aria-label="Season Statistics disciplines"
-              className={`rounded-xl border border-slate-800 bg-slate-950/80 p-1 ${
+              className={`${theme.tabList} ${
                 mobileCollapse(statsExpanded, 'inline-flex') || 'inline-flex'
               }`}
             >
@@ -695,10 +981,8 @@ export function SeasonDashboard({
                     role="tab"
                     aria-selected={isSelected}
                     onClick={() => setActiveStatsTab(tab.id)}
-                    className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition ${
-                      isSelected
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-slate-200'
+                    className={`transition ${
+                      isSelected ? theme.tabActive : theme.tabInactive
                     }`}
                   >
                     {tab.label}
@@ -714,7 +998,7 @@ export function SeasonDashboard({
           >
             <table className="w-full border-collapse text-left text-xs sm:text-sm">
               <thead>
-                <tr className="border-b border-slate-800 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                <tr className={theme.tableHeaderRow}>
                   <th
                     scope="col"
                     aria-sort={
@@ -724,15 +1008,15 @@ export function SeasonDashboard({
                           : 'ascending'
                         : 'none'
                     }
-                    className="sticky left-0 z-10 bg-slate-900 py-2.5 pr-4 pl-2"
+                    className={`sticky left-0 z-10 ${theme.stickyCellBg} py-2.5 pr-4 pl-2`}
                   >
                     <button
                       type="button"
                       onClick={() => handleSortColumnClick('Player', 'asc')}
                       className={`inline-flex items-center gap-1 uppercase tracking-wider transition ${
                         activeSort.header === 'Player'
-                          ? 'font-bold text-emerald-400'
-                          : 'font-semibold text-slate-400 hover:text-slate-200'
+                          ? theme.sortActive
+                          : theme.sortInactive
                       }`}
                     >
                       <span>Player</span>
@@ -782,9 +1066,7 @@ export function SeasonDashboard({
                             )
                           }
                           className={`inline-flex items-center justify-end gap-1 uppercase tracking-wider transition ${
-                            isActiveSort
-                              ? 'font-bold text-emerald-400'
-                              : 'font-semibold text-slate-400 hover:text-slate-200'
+                            isActiveSort ? theme.sortActive : theme.sortInactive
                           }`}
                         >
                           <span>{col.header}</span>
@@ -811,20 +1093,20 @@ export function SeasonDashboard({
                   })}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/70">
+              <tbody className={theme.tableDivider}>
                 {activeStatsRows.map((player) => (
                   <tr
                     key={player.playerKey}
-                    className="text-slate-200 hover:bg-slate-800/30"
+                    className={theme.opponentRow}
                   >
-                    <td className="sticky left-0 z-10 bg-slate-900 py-2.5 pr-4 pl-2 font-medium whitespace-nowrap text-white">
+                    <td className={`sticky left-0 z-10 ${theme.stickyCellBg} py-2.5 pr-4 pl-2 font-semibold whitespace-nowrap text-white`}>
                       {player.playerName}
                     </td>
                     {activeStatsColumns.map((col, idx) => (
                       <td
                         key={col.header}
-                        className={`py-2.5 text-right font-mono ${
-                          col.emphasize ? 'font-bold text-white' : ''
+                        className={`py-2.5 text-right font-scoreboard ${
+                          col.emphasize ? 'font-bold text-[#ffe600]' : 'text-slate-200'
                         } ${
                           idx === activeStatsColumns.length - 1
                             ? 'pl-2 pr-2'

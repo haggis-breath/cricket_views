@@ -1,1 +1,45 @@
 @import "tailwindcss";
+
+@layer utilities {
+  .font-broadcast {
+    font-family: 'Barlow Condensed', Impact, 'Arial Narrow', sans-serif;
+  }
+  .font-arcade {
+    font-family: 'Chakra Petch', 'Trebuchet MS', sans-serif;
+  }
+  .font-scoreboard {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  .bg-crt-scanlines {
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.18) 0px,
+      rgba(0, 0, 0, 0.18) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  }
+  .bg-snes-turf {
+    background-color: #0b1612;
+    background-image: repeating-linear-gradient(
+      90deg,
+      rgba(22, 101, 52, 0.12) 0px,
+      rgba(22, 101, 52, 0.12) 32px,
+      rgba(15, 23, 34, 0.12) 32px,
+      rgba(15, 23, 34, 0.12) 64px
+    );
+  }
+  .bg-shirt-stripes {
+    background: linear-gradient(
+      115deg,
+      #ffe600 0%,
+      #facc15 48%,
+      #ffffff 48.5%,
+      #ffffff 52%,
+      #1e293b 52.5%,
+      #0a0b0e 60%
+    );
+  }
+}
+

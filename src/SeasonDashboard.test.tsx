@@ -1854,4 +1854,33 @@ describe('SeasonDashboard mobile disclosures', () => {
     expect(body.classList).not.toContain('hidden')
     expect(tablist.classList).not.toContain('hidden')
   })
+
+  test('renders the top retro theme selector and switches between Ch9 Broadcast, Super Int. Cricket, and Club Kit Heritage styles', () => {
+    renderDashboard()
+
+    const selector = screen.getByRole('complementary', {
+      name: /Theme selector/i,
+    })
+    const ch9Btn = within(selector).getByRole('button', {
+      name: /CH\.9 '84 Broadcast/i,
+    })
+    const snesBtn = within(selector).getByRole('button', {
+      name: /Super Int\. Cricket '94/i,
+    })
+    const clubBtn = within(selector).getByRole('button', {
+      name: /Club Kit Heritage/i,
+    })
+
+    expect(ch9Btn).toHaveAttribute('aria-pressed', 'true')
+    expect(snesBtn).toHaveAttribute('aria-pressed', 'false')
+    expect(clubBtn).toHaveAttribute('aria-pressed', 'false')
+
+    fireEvent.click(snesBtn)
+    expect(snesBtn).toHaveAttribute('aria-pressed', 'true')
+    expect(ch9Btn).toHaveAttribute('aria-pressed', 'false')
+
+    fireEvent.click(clubBtn)
+    expect(clubBtn).toHaveAttribute('aria-pressed', 'true')
+    expect(snesBtn).toHaveAttribute('aria-pressed', 'false')
+  })
 })
