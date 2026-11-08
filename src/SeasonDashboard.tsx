@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import defaultSeasonData from '../data/season.json'
-import defaultMatchResultsCsv from '../2026-11-08-match-results.csv?raw'
-import defaultCombinedStatsCsv from '../2026-11-08-combined-batting-bowling-fielding.csv?raw'
 import clubLogoUrl from '../Logo.png'
 import {
   formatMatchDate,
@@ -252,6 +250,31 @@ const RETRO_THEMES: Record<RetroThemeId, RetroThemeStyle> = {
   },
 }
 
+/**
+ * Returns the contents of the newest date-stamped file (`YYYY-MM-DD-*.csv`).
+ * ISO dates sort lexicographically, so the last filename is the latest export.
+ */
+export function pickLatestDatedFile(files: Record<string, string>): string {
+  const paths = Object.keys(files).sort()
+  return paths.length > 0 ? files[paths[paths.length - 1]] : ''
+}
+
+// Weekly PlayHQ exports dropped into the repo root are picked up automatically.
+const defaultMatchResultsCsv = pickLatestDatedFile(
+  import.meta.glob<string>('../*-match-results.csv', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }),
+)
+const defaultCombinedStatsCsv = pickLatestDatedFile(
+  import.meta.glob<string>('../*-combined-batting-bowling-fielding.csv', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }),
+)
+
 export interface TeamMetadata {
   /** Full PlayHQ team name, used to match the Team in results and the Ladder. */
   name: string
@@ -275,7 +298,7 @@ export interface LadderEntry {
   lost: number
   drawnOrNoResult: number
   points: number
-  percentage: number
+  nrr: number
 }
 
 export interface SeasonConfig {
@@ -764,7 +787,7 @@ export function SeasonDashboard({
                         Pts
                       </th>
                       <th scope="col" className="py-2.5 pl-2 text-right">
-                        %
+                        NRR
                       </th>
                     </tr>
                   </thead>
@@ -810,7 +833,7 @@ export function SeasonDashboard({
                             {entry.points}
                           </td>
                           <td className="py-2.5 pl-2 pr-2 text-right font-scoreboard text-slate-200">
-                            {entry.percentage.toFixed(2)}
+                            {entry.nrr.toFixed(2)}
                           </td>
                         </tr>
                       )

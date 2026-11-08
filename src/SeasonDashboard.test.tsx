@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, test } from 'vitest'
-import { SeasonDashboard } from './SeasonDashboard'
+import { SeasonDashboard, pickLatestDatedFile } from './SeasonDashboard'
 import seasonData from '../data/season.json'
 import matchResultsCsv from '../2026-10-23-match-results.csv?raw'
 import combinedStatsCsv from '../2026-10-23-combined-batting-bowling-fielding.csv?raw'
@@ -10,14 +10,14 @@ import combinedStatsCsv from '../2026-10-23-combined-batting-bowling-fielding.cs
 const ladderFixtureSeason = {
   ...seasonData,
   ladder: [
-    { position: 1, team: 'Warners Bay', played: 2, won: 2, lost: 0, drawnOrNoResult: 0, points: 6, percentage: 1.372 },
-    { position: 2, team: 'Kotara', played: 2, won: 1, lost: 1, drawnOrNoResult: 0, points: 4, percentage: 1.114 },
-    { position: 3, team: 'MDCC Lions Senior Men Div 7', played: 2, won: 1, lost: 1, drawnOrNoResult: 0, points: 4, percentage: 0.385 },
-    { position: 4, team: 'Nelson Bay', played: 2, won: 1, lost: 1, drawnOrNoResult: 0, points: 4, percentage: -0.01 },
-    { position: 5, team: 'Tech College (Beresfield Memorial)', played: 2, won: 1, lost: 1, drawnOrNoResult: 0, points: 4, percentage: -0.754 },
-    { position: 6, team: 'Adamstown Cricket Club (Scorpions)', played: 2, won: 1, lost: 1, drawnOrNoResult: 0, points: 4, percentage: -0.404 },
-    { position: 7, team: 'Adamstown Cricket Club (Blue)', played: 1, won: 0, lost: 1, drawnOrNoResult: 0, points: 1, percentage: -2.755 },
-    { position: 8, team: 'Beresfield Memorial', played: 1, won: 0, lost: 1, drawnOrNoResult: 0, points: 1, percentage: -1.724 },
+    { position: 1, team: 'Warners Bay', played: 2, won: 2, lost: 0, drawnOrNoResult: 0, points: 6, nrr: 1.372 },
+    { position: 2, team: 'Kotara', played: 2, won: 1, lost: 1, drawnOrNoResult: 0, points: 4, nrr: 1.114 },
+    { position: 3, team: 'MDCC Lions Senior Men Div 7', played: 2, won: 1, lost: 1, drawnOrNoResult: 0, points: 4, nrr: 0.385 },
+    { position: 4, team: 'Nelson Bay', played: 2, won: 1, lost: 1, drawnOrNoResult: 0, points: 4, nrr: -0.01 },
+    { position: 5, team: 'Tech College (Beresfield Memorial)', played: 2, won: 1, lost: 1, drawnOrNoResult: 0, points: 4, nrr: -0.754 },
+    { position: 6, team: 'Adamstown Cricket Club (Scorpions)', played: 2, won: 1, lost: 1, drawnOrNoResult: 0, points: 4, nrr: -0.404 },
+    { position: 7, team: 'Adamstown Cricket Club (Blue)', played: 1, won: 0, lost: 1, drawnOrNoResult: 0, points: 1, nrr: -2.755 },
+    { position: 8, team: 'Beresfield Memorial', played: 1, won: 0, lost: 1, drawnOrNoResult: 0, points: 1, nrr: -1.724 },
   ],
   manualTallies: {
     droppedCatches: {
@@ -331,7 +331,7 @@ describe('SeasonDashboard', () => {
       within(table)
         .getAllByRole('columnheader')
         .map((h) => h.textContent),
-    ).toEqual(['Pos', 'Team', 'P', 'W', 'L', 'D/NR', 'Pts', '%'])
+    ).toEqual(['Pos', 'Team', 'P', 'W', 'L', 'D/NR', 'Pts', 'NRR'])
 
     // Rows in order (1 header row + 8 team rows)
     const rows = within(table).getAllByRole('row')
@@ -1882,5 +1882,18 @@ describe('SeasonDashboard mobile disclosures', () => {
     fireEvent.click(clubBtn)
     expect(clubBtn).toHaveAttribute('aria-pressed', 'true')
     expect(snesBtn).toHaveAttribute('aria-pressed', 'false')
+  })
+})
+
+describe('pickLatestDatedFile', () => {
+  test('returns the newest date-stamped export regardless of key order', () => {
+    expect(
+      pickLatestDatedFile({
+        '../2026-11-08-match-results.csv': 'round 5',
+        '../2026-10-23-match-results.csv': 'fixture',
+        '../2026-11-15-match-results.csv': 'round 6',
+      }),
+    ).toBe('round 6')
+    expect(pickLatestDatedFile({})).toBe('')
   })
 })
