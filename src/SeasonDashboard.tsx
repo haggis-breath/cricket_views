@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import defaultSeasonData from '../data/season.json'
-import defaultMatchResultsCsv from '../2026-11-03-match-results.csv?raw'
-import defaultCombinedStatsCsv from '../2026-11-03-combined-batting-bowling-fielding.csv?raw'
+import defaultMatchResultsCsv from '../2026-11-08-match-results.csv?raw'
+import defaultCombinedStatsCsv from '../2026-11-08-combined-batting-bowling-fielding.csv?raw'
 import clubLogoUrl from '../Logo.png'
 import {
   formatMatchDate,

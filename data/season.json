@@ -7,88 +7,88 @@
   },
   "season": {
     "title": "2026/27 Summer",
-    "lastUpdated": "Round 4 (31 Oct 2026)"
+    "lastUpdated": "Round 5 (7 Nov 2026)"
   },
   "ladder": [
     {
       "position": 1,
       "team": "Nelson Bay",
-      "played": 4,
-      "won": 3,
+      "played": 5,
+      "won": 4,
       "lost": 1,
       "drawnOrNoResult": 0,
-      "points": 10,
-      "percentage": 1.017
+      "points": 13,
+      "percentage": 0.925
     },
     {
       "position": 2,
       "team": "Adamstown Cricket Club (Scorpions)",
-      "played": 4,
-      "won": 3,
+      "played": 5,
+      "won": 4,
       "lost": 1,
       "drawnOrNoResult": 0,
-      "points": 10,
-      "percentage": 1.021
+      "points": 13,
+      "percentage": 1.268
     },
     {
       "position": 3,
       "team": "Warners Bay",
-      "played": 4,
-      "won": 3,
+      "played": 5,
+      "won": 4,
       "lost": 1,
       "drawnOrNoResult": 0,
-      "points": 10,
-      "percentage": 0.593
+      "points": 13,
+      "percentage": 0.56
     },
     {
       "position": 4,
       "team": "Kotara",
-      "played": 4,
+      "played": 5,
       "won": 2,
-      "lost": 2,
+      "lost": 3,
       "drawnOrNoResult": 0,
-      "points": 8,
-      "percentage": 0.498
+      "points": 9,
+      "percentage": 0.301
     },
     {
       "position": 5,
-      "team": "Adamstown Cricket Club (Blue)",
-      "played": 4,
-      "won": 1,
-      "lost": 2,
-      "drawnOrNoResult": 1,
-      "points": 7,
-      "percentage": -0.234
+      "team": "Merewether",
+      "played": 5,
+      "won": 2,
+      "lost": 3,
+      "drawnOrNoResult": 0,
+      "points": 9,
+      "percentage": -0.628
     },
     {
       "position": 6,
-      "team": "Beresfield Memorial",
-      "played": 4,
+      "team": "Adamstown Cricket Club (Blue)",
+      "played": 5,
       "won": 1,
-      "lost": 2,
+      "lost": 3,
       "drawnOrNoResult": 1,
-      "points": 7,
-      "percentage": -0.453
+      "points": 8,
+      "percentage": -0.74
     },
     {
       "position": 7,
-      "team": "Tech College (Beresfield Memorial)",
-      "played": 4,
+      "team": "Beresfield Memorial",
+      "played": 5,
       "won": 1,
       "lost": 3,
-      "drawnOrNoResult": 0,
-      "points": 6,
-      "percentage": -1.503
+      "drawnOrNoResult": 1,
+      "points": 8,
+      "percentage": -0.771
     },
     {
       "position": 8,
-      "team": "Merewether",
-      "played": 4,
+      "team": "Tech College (Beresfield Memorial)",
+      "played": 5,
       "won": 1,
-      "lost": 3,
+      "lost": 4,
       "drawnOrNoResult": 0,
-      "points": 6,
-      "percentage": -1.144
+      "points": 7,
+      "percentage": -1.251
     }
   ],
   "manualTallies": {
@@ -100,7 +100,8 @@
       "Kale Hook": 1,
       "Thomas Peeters": 1,
       "Jake Martin": 1,
-      "Tyran Cameron": 1
+      "Tyran Cameron": 1,
+      "David Stavely": 1
     }
   }
 }
